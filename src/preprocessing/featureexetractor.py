@@ -6,6 +6,9 @@ from scipy.io import wavfile
 from scipy import signal
 import matplotlib.pyplot as plt
 
+from src.datastructures.trackfeatures import TrackFeatures
+from src.io.trackfeaturesfilehandler import TrackFeaturesFileHandler
+
 class FeatureExtractor:
     """
     extracts the needed features from a given track and saves them in a specified folder
@@ -60,11 +63,13 @@ class FeatureExtractor:
         assert img_width == 88 and img_height == 94, "Input image dimensions will cause shape error in decoder"
         outfolder = self.config.outputlocation / Path(wavfile_path.name)
         outfolder.mkdir(exist_ok=True, parents=True)
-        np.savez(outfolder, F=F_crop, T=T, S_mag=S_mag_crop, dt=dt, img_width=img_width, img_height=img_height, time_resolution=time_resolution)
+        track_features = TrackFeatures(F=F_crop, T=T, S_mag=S_mag_crop, dt=dt, img_width=img_width, img_height=img_height, time_resolution=time_resolution)
+        TrackFeaturesFileHandler().save_track_features(outfolder / Path('vars.npz'),track_features)
 
-        self._plot_spectogram(T, S_mag_crop, F_crop, img_width, img_height)
+        self._plot_spectogram(T, S_mag_crop, F_crop, img_width, img_height, outfolder)
+        
 
-    def _plot_spectogram(self, T, S_mag_crop, F_crop, img_width : int, img_height : int):
+    def _plot_spectogram(self, T, S_mag_crop, F_crop, img_width : int, img_height : int, outfolder : Path):
         c=13
         plt.figure(figsize=(20, 7))
         ax = plt.axes()
@@ -77,5 +82,5 @@ class FeatureExtractor:
 
         cbar = plt.colorbar(ax=ax)
         cbar.set_label('Amplitude (dB)')
+        plt.savefig(outfolder / Path('spectrogram.png'))
         plt.show()
-        
