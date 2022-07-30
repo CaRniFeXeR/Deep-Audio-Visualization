@@ -127,3 +127,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+cached_track_data/*
+tracks/*

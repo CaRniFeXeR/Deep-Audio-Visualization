@@ -1,0 +1,4 @@
+ {
+    "type_name": "src.datastructures.featureextractionconfig.FeatureExtractionConfig",
+    "outputlocation" : "./cached_track_data"
+ }
