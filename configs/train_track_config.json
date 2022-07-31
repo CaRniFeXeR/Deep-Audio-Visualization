@@ -1,18 +1,23 @@
 {
-    "type_name" : "src.datastructures.trainconfig.TrainConfig",
-    "modelconfig" : {
-        "decoderconfig" : {},
-        "encoderconfig" : {},
-        "seqpredictorconfig" : {},
-        "enable_prediction_head" : false
+    "type_name": "src.datastructures.trainconfig.TrainConfig",
+    "modelconfig": {
+        "decoderconfig": {},
+        "encoderconfig": {},
+        "seqpredictorconfig": {},
+        "enable_prediction_head": false
     },
-    "trainparams" : {
-        "n_epochs" : 7
+    "trainparams": {
+        "n_epochs": 7
     },
-    "wandbconfig" : {
-        "entity" : "floko",
-        "prj_name" : "deep-music_viz",
-        "enabled" : false
+    "modelstorageconfig": {
+        "file_path" : "./saved_models/Majulah",
+        "load_stats_from_file": false,
+        "gpu_name": "cuda"
     },
-    "track_features_location" : "./cached_track_data/Majulah.wav"
+    "wandbconfig": {
+        "entity": "floko",
+        "prj_name": "deep-music-vis",
+        "enabled": true
+    },
+    "track_features_location": "./cached_track_data/Majulah.wav"
 }

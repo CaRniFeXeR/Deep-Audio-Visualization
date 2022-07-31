@@ -26,8 +26,8 @@ class Decoder(torch.nn.Module):
         batch_size = embedded_points.shape[0]
         data = torch.relu(self.lin_latent(embedded_points)).view((batch_size, 32, 11))
         for layer in self.layers:
-            print(layer)
-            print(data.shape)
+            # print(layer)
+            # print(data.shape)
             data = layer(data)
 
         return data

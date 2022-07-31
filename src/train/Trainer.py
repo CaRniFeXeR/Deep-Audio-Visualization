@@ -2,14 +2,16 @@ from pathlib import Path
 import numpy as np
 
 import torch
-from src.io.trackfeaturesfilehandler import TrackFeaturesFileHandler
+from ..io.modelfilehandler import ModelFileHandler
+from ..io.trackfeaturesfilehandler import TrackFeaturesFileHandler
+from .WandbLogger import WandbLogger
 from ..datastructures.trainconfig import TrainConfig
 from ..model.audiomodel import AudioModel
 
 
 class Trainer:
 
-    def __init__(self, config : TrainConfig) -> None:
+    def __init__(self, config: TrainConfig) -> None:
         self.config = config
         self.tf = TrackFeaturesFileHandler().load_track_features(self.config.track_features_location / Path("vars.npz"))
         self.config.modelconfig.encoderconfig.features_in_dim = self.tf.img_height
@@ -17,29 +19,33 @@ class Trainer:
         self.model = AudioModel(self.config.modelconfig)
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.config.trainparams.learning_rate)
         self.loss_fn = torch.nn.BCEWithLogitsLoss()
+        self.storageHandler = ModelFileHandler(self.config.modelstorageconfig)
+        self.logger = WandbLogger(self.config.wandbconfig,{**self.config.trainparams.__dict__})
         # self.loss_fn = torch.nn.MSELoss()
 
     def train(self):
-        
-        self.model.to(device = "cuda")
+        self.logger.watch_model(self.model)
+        self.model.to(device="cuda")
+
         def normalize0_1(A):
             return (A-np.min(A))/(np.max(A) - np.min(A))
 
-        S_mag = normalize0_1(self.tf.S_mag) #e.g. shape = (94, 1757)
-        
+        S_mag = normalize0_1(self.tf.S_mag)  # e.g. shape = (94, 1757)
 
-        for e in range(self.config.trainparams.n_epochs):
+        for e in range(self.config.trainparams.n_epochs*100):
             print(f"training in epoch '{e}'")
             for window_idx in range(S_mag.shape[1] // self.tf.img_width):
                 self.optimizer.zero_grad()
                 w_start = window_idx*self.tf.img_width
                 w_end = (window_idx+1)*self.tf.img_width
-                input_tensor = torch.from_numpy(S_mag[:,w_start:w_end]).to(device="cuda").unsqueeze(dim = 0)
+                input_tensor = torch.from_numpy(S_mag[:, w_start:w_end]).to(device="cuda").unsqueeze(dim=0)
                 predicted = self.model(input_tensor)
                 loss = self.loss_fn(predicted, input_tensor)
-                print(f" loss {loss.detach().cpu().numpy()}")
+                loss_np = loss.detach().cpu().numpy()
+                print(f" loss {loss_np}")
+                self.logger.log({"rec_loss" : loss_np})
                 loss.backward()
                 self.optimizer.step()
-        
-        
-                
+
+        print("\n\nfinished training ... \n\n")
+        self.storageHandler.save_model_state_to_file(self.model)
