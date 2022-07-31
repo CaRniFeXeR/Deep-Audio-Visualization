@@ -11,3 +11,8 @@ class TrackFeatures:
     img_height : int
     img_width : int
     time_resolution : float
+
+    def get_normalized_magnitudes(self) -> np.ndarray:
+        mag_min = np.min(self.S_mag)
+        nag_max = np.max(self.S_mag)
+        return (self.S_mag-mag_min)/(nag_max - mag_min)

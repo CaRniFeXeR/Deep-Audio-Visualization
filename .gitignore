@@ -131,3 +131,4 @@ cached_track_data/*
 tracks/*
 wandb/*
 saved_models/*
+movie_out/*
