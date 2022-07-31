@@ -1,5 +1,7 @@
 from pathlib import Path
 import torch
+
+from .dataprovider import DataProvider
 from ..datastructures.visualizationconfig import VisualizationConfig
 from ..visualization.embeddingvisualizer import EmbeddingVisualizer
 from ..io.modelfilehandler import ModelFileHandler
@@ -32,19 +34,11 @@ class Trainer:
         trajectory_plot = self.visualizer.plot_whole_track_trajectory()
         self.logger.log_figure_as_img("trajectory_init", trajectory_plot)
 
+        dataprovider = DataProvider(self.tf, self.config.trainparams.batch_size)
+
         for e in range(self.config.trainparams.n_epochs):
             print(f"training in epoch '{e}'")
-            for w_start in range(0, S_mag_norm.shape[1] - self.tf.img_width, self.config.trainparams.batch_size):
-                self.optimizer.zero_grad()
-                input_tensor_list = []
-                for bi in range(self.config.trainparams.batch_size):
-                    w_start_b = w_start + bi
-                    w_end = w_start_b + self.tf.img_width
-                    if w_end <= S_mag_norm.shape[1]:
-                        input_tensor = torch.from_numpy(S_mag_norm[:, w_start_b:w_end]).to(device="cuda")
-                        input_tensor_list.append(input_tensor)
-
-                input_tensor = torch.stack(input_tensor_list)
+            for input_tensor in dataprovider:
                 predicted = self.model(input_tensor)
                 loss = self.loss_fn(predicted, input_tensor)
                 loss.backward()
