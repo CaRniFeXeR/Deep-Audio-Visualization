@@ -16,7 +16,7 @@ class AudioModel(torch.nn.Module):
         self.encoder = Encoder(self.config.encoderconfig)
         self.decoder = Decoder(self.config.decoderconfig)
         if self.config.enable_prediction_head:
-            self.sequence_predictor = SequencePredictor(self.config.SeqPredictorConfig)
+            self.sequence_predictor = SequencePredictor(self.config.seqpredictorconfig)
 
     def embed_track_window(self, x : torch.Tensor) -> torch.Tensor:
         return self.encoder(x)    
@@ -25,4 +25,9 @@ class AudioModel(torch.nn.Module):
         encoded = self.embed_track_window(x)
         decoded = self.decoder(encoded)
         return decoded
+
+    def seq_prediction_forward(self, x : torch.Tensor) -> torch.Tensor:
+        return self.sequence_predictor(x)
+
+
 

@@ -7,7 +7,7 @@
         "enable_prediction_head": false
     },
     "modelstorageconfig": {
-        "file_path" : "./saved_models/Majulah/31_07_2022 15_56.pt",
+        "file_path" : "./saved_models/Majulah/31_07_2022 17_15.pt",
         "load_stats_from_file": true,
         "gpu_name": "cuda"
     },

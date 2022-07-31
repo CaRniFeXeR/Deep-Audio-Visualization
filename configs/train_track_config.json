@@ -4,11 +4,11 @@
         "decoderconfig": {},
         "encoderconfig": {},
         "seqpredictorconfig": {},
-        "enable_prediction_head": false
+        "enable_prediction_head": true
     },
     "trainparams": {
-        "n_epochs": 10,
-        "learning_rate" : 0.0001,
+        "n_epochs": 25,
+        "learning_rate" : 0.001,
         "batch_size" : 64
     },
     "modelstorageconfig": {
