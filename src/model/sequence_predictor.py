@@ -2,7 +2,7 @@ import torch
 
 from src.datastructures.predictionheadconfig import SeqPredictorConfig 
 
-class SequencePredictor(torch.Module):
+class SequencePredictor(torch.nn.Module):
 
     def __init__(self, config : SeqPredictorConfig) -> None:
         super().__init__()

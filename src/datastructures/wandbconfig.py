@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 
@@ -6,6 +6,6 @@ from typing import List
 class WandbConfig:
     entity: str
     prj_name: str
-    notes: str
-    tags: List[str]
+    notes: str = ""
+    tags: List[str] = None
     enabled: bool = True

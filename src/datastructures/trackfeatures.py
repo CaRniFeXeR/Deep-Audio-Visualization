@@ -10,3 +10,4 @@ class TrackFeatures:
     dt : float
     img_height : int
     img_width : int
+    time_resolution : float

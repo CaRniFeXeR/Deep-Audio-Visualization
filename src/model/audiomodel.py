@@ -8,7 +8,7 @@ from src.model.sequence_predictor import SequencePredictor
 from ..datastructures.audiomodelconfig import AudioModelConfig
 
 
-class AudioModel(torch.Module):
+class AudioModel(torch.nn.Module):
 
     def __init__(self, config : AudioModelConfig) -> None:
         super().__init__()
@@ -19,5 +19,7 @@ class AudioModel(torch.Module):
             self.sequence_predictor = SequencePredictor(self.config.SeqPredictorConfig)
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        pass
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return decoded
 
