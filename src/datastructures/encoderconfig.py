@@ -4,3 +4,4 @@ from dataclasses import dataclass
 class EncoderConfig:
     n_layers : int = 2
     features_in_dim : int = 32
+    latent_dim : int = 3

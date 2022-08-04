@@ -2,14 +2,15 @@
     "type_name": "src.datastructures.trainconfig.TrainConfig",
     "modelconfig": {
         "decoderconfig": {},
-        "encoderconfig": {},
+        "encoderconfig": {"latent_dim" : 3},
         "seqpredictorconfig": {},
-        "enable_prediction_head": true
+        "enable_prediction_head": false
     },
     "trainparams": {
         "n_epochs": 25,
-        "learning_rate" : 0.001,
-        "batch_size" : 64
+        "learning_rate" : 0.01,
+        "batch_size" : 64,
+        "seq_prediction_start_epoch" : 10
     },
     "modelstorageconfig": {
         "file_path" : "./saved_models/Majulah",

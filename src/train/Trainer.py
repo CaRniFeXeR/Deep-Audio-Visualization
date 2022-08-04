@@ -24,8 +24,16 @@ class Trainer:
         self.storageHandler = ModelFileHandler(self.config.modelstorageconfig)
         self.logger = WandbLogger(self.config.wandbconfig, {**self.config.trainparams.__dict__})
         self.visualizer = EmbeddingVisualizer(VisualizationConfig(self.config.modelconfig, self.config.modelstorageconfig, self.config.track_features_location, None), self.model)
-        # self.loss_fn = torch.nn.BCEWithLogitsLoss()
-        self.recloss_fn = torch.nn.MSELoss()
+        
+        if self.config.trainparams.rec_loss == "bce":
+            self.rec_loss_fn = torch.nn.BCEWithLogitsLoss()
+        elif self.config.trainparams.rec_loss == "mse":
+            self.rec_loss_fn = torch.nn.MSELoss()
+        
+        if self.config.trainparams.seq_pred_loss == "mse":
+            self.seq_loss_fn =  torch.nn.MSELoss()
+        elif self.config.trainparams.seq_pred_loss == "cosine":
+            self.seq_loss_fn = torch.nn.CosineSimilarity()
 
     def train(self):
         self.logger.watch_model(self.model)
@@ -40,16 +48,16 @@ class Trainer:
             print(f"training in epoch '{e}'")
             for input_tensor in dataprovider:
                 rec_pred = self.model(input_tensor)
-                rec_loss = self.recloss_fn(rec_pred, input_tensor)
+                rec_loss = self.rec_loss_fn(rec_pred, input_tensor)
 
                 input_seq = dataprovider.get_next_prediction_seq()
-                if input_seq is not None and e > 15:
+                if input_seq is not None and self.config.modelconfig.enable_prediction_head and e > self.config.trainparams.seq_prediction_start_epoch:
                     seq_shape = input_seq.shape
                     embedded_seq = self.model.embed_track_window(input_seq.view((seq_shape[0]*seq_shape[1], seq_shape[2], seq_shape[3])))
-                    embedded_seq = embedded_seq.view((seq_shape[0], seq_shape[1], 3))
+                    embedded_seq = embedded_seq.view((seq_shape[0], seq_shape[1], self.config.modelconfig.seqpredictorconfig.latent_dim))
                     seq_pred = self.model.seq_prediction_forward(embedded_seq[:, :-1])
                     seq_gt = embedded_seq[:, -1]
-                    seq_loss = self.recloss_fn(seq_pred, seq_gt)
+                    seq_loss = self.seq_loss_fn(seq_pred, seq_gt)
                     self.logger.log({"seq_loss": seq_loss.detach().cpu().numpy()}, commit=False)
                     loss = rec_loss + 0.01 * seq_loss
                 else:
@@ -61,9 +69,10 @@ class Trainer:
                 print(f" rec_loss {rec_loss_np}")
                 self.logger.log({"rec_loss": rec_loss_np}, commit=False)
 
+            print(f"rec_pred mean {rec_pred.detach().cpu().numpy().mean()}")
             trajectory_plot = self.visualizer.plot_whole_track_trajectory()
             self.logger.log_figure_as_img("trajectory", trajectory_plot)
-            plt.close()
+            plt.close("all")
 
         print("\n\nfinished training ... \n\n")
         self.storageHandler.save_model_state_to_file(self.model)
