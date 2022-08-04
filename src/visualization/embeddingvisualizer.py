@@ -1,5 +1,6 @@
 from pathlib import Path
 from matplotlib import pyplot as plt
+plt.switch_backend('agg')
 
 import torch
 
