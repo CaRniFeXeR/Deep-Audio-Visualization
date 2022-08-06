@@ -1,4 +1,5 @@
  {
     "type_name": "src.datastructures.featureextractionconfig.FeatureExtractionConfig",
-    "outputlocation" : "./cached_track_data"
+    "outputlocation" : "./cached_track_data",
+    "secs_per_spectogram" : 0.5
  }

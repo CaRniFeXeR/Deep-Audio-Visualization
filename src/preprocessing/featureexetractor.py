@@ -60,8 +60,8 @@ class FeatureExtractor:
 
         img_size = (img_width, img_height)
         print(f"spectrogram subimage shape (time bins, freq bins): {img_size}")
-        assert img_width == 88 and img_height == 94, "Input image dimensions will cause shape error in decoder"
-        outfolder = self.config.outputlocation / Path(wavfile_path.name)
+        assert img_height == 94, "Input image dimensions will cause shape error in decoder"
+        outfolder = self.config.outputlocation / Path(wavfile_path.name + f"_{self.config.secs_per_spectogram}s")
         outfolder.mkdir(exist_ok=True, parents=True)
         track_features = TrackFeatures(F=F_crop, T=T, S_mag=S_mag_crop, dt=dt, img_width=img_width, img_height=img_height, time_resolution=time_resolution)
         TrackFeaturesFileHandler().save_track_features(outfolder / Path('vars.npz'),track_features)
