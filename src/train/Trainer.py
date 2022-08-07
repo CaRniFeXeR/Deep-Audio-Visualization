@@ -17,8 +17,10 @@ class Trainer:
     def __init__(self, config: TrainConfig) -> None:
         self.config = config
         self.tf = TrackFeaturesFileHandler().load_track_features(self.config.track_features_location / Path("vars.npz"))
-        self.config.modelconfig.encoderconfig.features_in_dim = self.tf.img_height
-        self.config.modelconfig.decoderconfig.output_width = self.tf.img_height
+        self.config.modelconfig.encoderconfig.features_in_dim = self.tf.frame_height
+        self.config.modelconfig.encoderconfig.frame_width_in = self.tf.frame_width
+        self.config.modelconfig.decoderconfig.output_dim = self.tf.frame_height
+        self.config.modelconfig.decoderconfig.output_length = self.tf.frame_width
         self.model = AudioModel(self.config.modelconfig)
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.config.trainparams.learning_rate)
         self.storageHandler = ModelFileHandler(self.config.modelstorageconfig)
@@ -39,8 +41,8 @@ class Trainer:
         self.logger.watch_model(self.model)
         self.model.to(device="cuda")
 
-        trajectory_plot = self.visualizer.plot_whole_track_trajectory()
-        self.logger.log_figure_as_img("trajectory_init", trajectory_plot)
+        # trajectory_plot = self.visualizer.plot_whole_track_trajectory()
+        # self.logger.log_figure_as_img("trajectory_init", trajectory_plot)
 
         dataprovider = DataProvider(self.tf, self.config.trainparams.batch_size, self.config.trainparams.prediction_seq_length)
 

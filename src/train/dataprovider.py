@@ -14,10 +14,10 @@ class DataProvider:
 
     def _generate_idxs(self):
         self.S_mag_norm = self.tf.get_normalized_magnitudes()
-        self.data_idxes = list(range(0, self.S_mag_norm.shape[1] - self.tf.img_width))
+        self.data_idxes = list(range(0, self.S_mag_norm.shape[1] - self.tf.frame_width))
 
     def _get_window_tensor(self, w_start: int) -> torch.Tensor:
-        w_end = w_start + self.tf.img_width
+        w_end = w_start + self.tf.frame_width
         if w_end <= self.S_mag_norm.shape[1]:
             return torch.from_numpy(self.S_mag_norm[:, w_start:w_end]).to(device="cuda")
         else:
@@ -52,7 +52,7 @@ class DataProvider:
 
             current_idx = self.prediction_idxes.pop()
 
-            if current_idx < self.l or current_idx - self.l + self.tf.img_width > self.S_mag_norm.shape[1]:
+            if current_idx < self.l or current_idx - self.l + self.tf.frame_width > self.S_mag_norm.shape[1]:
                 return None #return none if l windows are out of img bounds
 
             sequence_tensors = []

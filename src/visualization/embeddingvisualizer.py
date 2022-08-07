@@ -16,8 +16,8 @@ class EmbeddingVisualizer:
     def __init__(self, config: VisualizationConfig, model : AudioModel = None) -> None:
         self.config = config
         self.tf = TrackFeaturesFileHandler().load_track_features(self.config.track_features_location / Path("vars.npz"))
-        self.config.modelconfig.encoderconfig.features_in_dim = self.tf.img_height
-        self.config.modelconfig.decoderconfig.output_width = self.tf.img_height
+        self.config.modelconfig.encoderconfig.features_in_dim = self.tf.frame_height
+        self.config.modelconfig.decoderconfig.output_dim = self.tf.frame_height
         self.model = model
         if self.model == None:
             self.model = AudioModel(self.config.modelconfig)
@@ -27,8 +27,8 @@ class EmbeddingVisualizer:
         self.model.to(device="cuda")
         S_mag_norm = self.tf.get_normalized_magnitudes()
         embedded_points = []
-        for w_start in range(S_mag_norm.shape[1] - self.tf.img_width):
-            w_end = w_start + self.tf.img_width
+        for w_start in range(S_mag_norm.shape[1] - self.tf.frame_width):
+            w_end = w_start + self.tf.frame_width
             input_tensor = torch.from_numpy(S_mag_norm[:, w_start:w_end]).to(device="cuda").unsqueeze(dim=0)
             encoded = self.model.embed_track_window(input_tensor)
             embedded_points.append(encoded.detach().cpu().numpy())
@@ -57,7 +57,7 @@ class EmbeddingVisualizer:
         l = 45
         # determine real time start and end of the embedding in seconds
         t_start = int(self.tf.dt*(l - 1))  # first time bin index (in S_mag) in the valid range
-        t_end = int(len(self.tf.T) - self.tf.img_width - self.tf.dt - 1)  # last frame index in the valid range, assuming images start at t=0 and go to t=T-1
+        t_end = int(len(self.tf.T) - self.tf.frame_width - self.tf.dt - 1)  # last frame index in the valid range, assuming images start at t=0 and go to t=T-1
         T_start = self.tf.T[t_start]
         T_end = self.tf.T[t_end]
         samples = np.floor((t_end - t_start + 1)/self.tf.dt)

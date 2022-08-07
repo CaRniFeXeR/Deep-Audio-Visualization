@@ -8,8 +8,8 @@ class TrackFeatures:
     T : np.ndarray
     S_mag : np.ndarray
     dt : float
-    img_height : int
-    img_width : int
+    frame_height : int
+    frame_width : int
     time_resolution : float
 
     def get_normalized_magnitudes(self) -> np.ndarray:

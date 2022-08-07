@@ -42,7 +42,7 @@ class FeatureExtractor:
         time_resolution = np.floor(len(T)/duration_s)  # Spectrogram time bins per sec
         seconds_per_window = self.config.window_size/sample_rate
 
-        img_width = np.argmin(np.abs(self.config.secs_per_spectogram-T))+1  # number of spectrogram time bins
+        frame_width = np.argmin(np.abs(self.config.secs_per_spectogram-T))+1  # number of spectrogram time bins
 
         #for cropping out lower frequencies like drums
         f_max = 4000  # max frequency (Hz) to include in spectrogram. dont change
@@ -51,30 +51,30 @@ class FeatureExtractor:
         f_min_idx = np.argmin(np.abs(f_min-F))  # go inspect fig to check if this works out
 
         S_mag_crop = S_mag[f_min_idx:f_max_idx+f_min_idx, :]  #crop high and low freqs
-        img_height = S_mag_crop.shape[0]
+        frame_height = S_mag_crop.shape[0]
         F_crop = F[f_min_idx:f_max_idx+f_min_idx]
 
         # better if dimensions are even for Decoder network
-        if img_width % 2 == 1:
-            img_width += 1
+        if frame_width % 2 == 1:
+            frame_width += 1
 
-        img_size = (img_width, img_height)
-        print(f"spectrogram subimage shape (time bins, freq bins): {img_size}")
-        assert img_height == 94, "Input image dimensions will cause shape error in decoder"
+        frame_size = (frame_width, frame_height)
+        print(f"spectrogram frame shape (time bins, freq bins): {frame_size}")
+        assert frame_height == 94, "Input image dimensions will cause shape error in decoder"
         outfolder = self.config.outputlocation / Path(wavfile_path.name + f"_{self.config.secs_per_spectogram}s")
         outfolder.mkdir(exist_ok=True, parents=True)
-        track_features = TrackFeatures(F=F_crop, T=T, S_mag=S_mag_crop, dt=dt, img_width=img_width, img_height=img_height, time_resolution=time_resolution)
+        track_features = TrackFeatures(F=F_crop, T=T, S_mag=S_mag_crop, dt=dt, frame_width=frame_width, frame_height=frame_height, time_resolution=time_resolution)
         TrackFeaturesFileHandler().save_track_features(outfolder / Path('vars.npz'),track_features)
 
-        self._plot_spectogram(T, S_mag_crop, F_crop, img_width, img_height, outfolder)
+        self._plot_spectogram(T, S_mag_crop, F_crop, frame_width, frame_height, outfolder)
         
 
-    def _plot_spectogram(self, T, S_mag_crop, F_crop, img_width : int, img_height : int, outfolder : Path):
+    def _plot_spectogram(self, T, S_mag_crop, F_crop, frame_width : int, frame_height : int, outfolder : Path):
         c=13
         plt.figure(figsize=(20, 7))
         ax = plt.axes()
-        # plt.pcolormesh(T[:img_width], F[:img_height], S_mag[:img_height, :img_width], shading='nearest', cmap='inferno')
-        plt.pcolormesh(T[:img_width*c], F_crop[:img_height], S_mag_crop[:img_height, :img_width*c], shading='nearest', cmap='inferno')
+        # plt.pcolormesh(T[:frame_width], F[:frame_height], S_mag[:frame_height, :frame_width], shading='nearest', cmap='inferno')
+        plt.pcolormesh(T[:frame_width*c], F_crop[:frame_height], S_mag_crop[:frame_height, :frame_width*c], shading='nearest', cmap='inferno')
 
         ax.set_yscale('linear')
         plt.ylabel('Frequency [Hz]')
