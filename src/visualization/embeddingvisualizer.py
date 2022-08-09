@@ -1,5 +1,6 @@
 from pathlib import Path
 from matplotlib import pyplot as plt
+
 plt.switch_backend('agg')
 
 import torch
@@ -8,6 +9,7 @@ from ..io.modelfilehandler import ModelFileHandler
 from ..datastructures.visualizationconfig import VisualizationConfig
 from ..io.trackfeaturesfilehandler import TrackFeaturesFileHandler
 from ..model.audiomodel import AudioModel
+from .videowriter import VideoWriter
 import numpy as np
 
 
@@ -17,7 +19,9 @@ class EmbeddingVisualizer:
         self.config = config
         self.tf = TrackFeaturesFileHandler().load_track_features(self.config.track_features_location / Path("vars.npz"))
         self.config.modelconfig.encoderconfig.features_in_dim = self.tf.frame_height
+        self.config.modelconfig.encoderconfig.frame_width_in = self.tf.frame_width
         self.config.modelconfig.decoderconfig.output_dim = self.tf.frame_height
+        self.config.modelconfig.decoderconfig.output_length = self.tf.frame_width
         self.model = model
         if self.model == None:
             self.model = AudioModel(self.config.modelconfig)
@@ -47,7 +51,7 @@ class EmbeddingVisualizer:
         # disable auto rotation
         # ax.zaxis.set_rotate_label(False)
         # ax.set_zlabel('$\gamma$', fontsize=10, rotation = 0)
-        ax.plot3D(embedded[:, 0], embedded[:, 1], embedded[:, 2], 'k-', markerfacecolor='black', markersize=1, linewidth=0.5, label='Z')
+        ax.plot3D(embedded[:, 0], embedded[:, 1], embedded[:, 2], 'k-', markerfacecolor='black', markersize=1, linewidth=0.2, label='Z')
         return fig
 
     def render_video_track_trajectory(self):
@@ -74,8 +78,6 @@ class EmbeddingVisualizer:
         tail_points = 12
         print(f"T_start including tail points {T_start+(tail_points-1)/self.tf.time_resolution} (s), T_end {T_end} (s)")
 
-        S_mag = self.tf.get_normalized_magnitudes()
-
         a = 8
         fig2 = plt.figure(figsize=(1.7778*a, a))  #  e.g. figsize=(4, 3) --> img saved has resolution (400, 300) width by height when using dpi='figure' in savefig
         dtheta = 0.13/2.1  # 0.02  #rotation rate deg
@@ -86,7 +88,7 @@ class EmbeddingVisualizer:
         phi = 35  # elevation angle
         render_interval = 1
 
-        for t in range(tail_points, len(embedded), render_interval):
+        for t in range(tail_points, int(len(embedded)), render_interval):
             ax = fig2.add_subplot(projection='3d')
             ax.plot3D(embedded[:t, 0], embedded[:t, 1], embedded[:t, 2], '-', markerfacecolor='black', markersize=1, linewidth=1, color='black', label='Z')
             ax.plot3D(embedded[t-tail_points:t, 0], embedded[t-tail_points:t, 1], embedded[t-tail_points:t, 2], '-o', markerfacecolor='orange', mec='darkblue', markersize=12, linewidth=2, label='Z(t)')
@@ -104,5 +106,8 @@ class EmbeddingVisualizer:
             theta += dtheta
             # k += dk
             print(t)
+
+        movieWriter = VideoWriter(self.config.movie_out_location, "movie.avi", fps = float(self.tf.time_resolution))
+        movieWriter.write_video_file()
 
 
