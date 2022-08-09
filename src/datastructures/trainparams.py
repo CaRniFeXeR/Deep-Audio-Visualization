@@ -8,4 +8,4 @@ class Trainparams:
     prediction_seq_length : int = 45
     seq_prediction_start_epoch : int = 0
     rec_loss : str = "bce"
-    seq_pred_loss : str = "mse"
+    seq_loss : str = "mse"

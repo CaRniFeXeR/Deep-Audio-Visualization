@@ -32,10 +32,15 @@ class Trainer:
         elif self.config.trainparams.rec_loss == "mse":
             self.rec_loss_fn = torch.nn.MSELoss()
         
-        if self.config.trainparams.seq_pred_loss == "mse":
+        if self.config.trainparams.seq_loss == "mse":
             self.seq_loss_fn =  torch.nn.MSELoss()
-        elif self.config.trainparams.seq_pred_loss == "cosine":
-            self.seq_loss_fn = torch.nn.CosineSimilarity()
+        elif self.config.trainparams.seq_loss == "cosine":
+            cosineloss = torch.nn.CosineEmbeddingLoss()
+            one = torch.ones(1).to(device = "cuda")
+            def loss_fn(x : torch.Tensor,y : torch.Tensor) -> torch.Tensor:
+                return cosineloss(x,y, one)
+
+            self.seq_loss_fn = loss_fn
 
     def train(self):
         self.logger.watch_model(self.model)
