@@ -78,41 +78,44 @@ class EmbeddingVisualizer:
         print(f"time spanning input tensor: {(l-1)*self.tf.dt/self.tf.time_resolution} (s)")  # should equal T_start
         print(f"Total frames to be rendered: {samples}")
 
-        tail_points = 12
-        print(f"T_start including tail points {T_start+(tail_points-1)/self.tf.time_resolution} (s), T_end {T_end} (s)")
+        n_tail_points = 12
+        print(f"T_start including tail points {T_start+(n_tail_points-1)/self.tf.time_resolution} (s), T_end {T_end} (s)")
 
-        a = 8
-        fig2 = plt.figure(figsize=(1.7778*a, a))  #  e.g. figsize=(4, 3) --> img saved has resolution (400, 300) width by height when using dpi='figure' in savefig
+        line_color = "white" if self.config.dark_mode else "black"
+        a = 6
+        fig = plt.figure(figsize=(1.7778*a, a))  #  e.g. figsize=(4, 3) --> img saved has resolution (400, 300) width by height when using dpi='figure' in savefig
+        if self.config.dark_mode == True:
+            fig.set_facecolor("black")
         dtheta = 0.13/2.1  # 0.02  #rotation rate deg
-        k = 0
-        dk = 0  # 2*np.pi/360*0.05
-        theta = 1
-        # phi_0 = 15
         phi = 35  # elevation angle
         render_interval = 1
-        n_frames = int(len(embedded)) - tail_points
-        # n_frames = 200
-        # for t in range(tail_points, int(len(embedded)), render_interval):
+        n_frames = int(len(embedded)) # - n_tail_points
+        line_interval = 500
+        n_frames = 2000
         def frame_fnc(given_t : float):
-            t = int(given_t + tail_points)
-            fig2.clear(keep_observers=True)
-            ax = fig2.add_subplot(projection='3d')
-            ax.plot3D(embedded[:t, 0], embedded[:t, 1], embedded[:t, 2], '-', markerfacecolor='black', markersize=1, linewidth=1, color='black', label='Z')
-            ax.plot3D(embedded[t-tail_points:t, 0], embedded[t-tail_points:t, 1], embedded[t-tail_points:t, 2], '-o', markerfacecolor='orange', mec='darkblue', markersize=12, linewidth=2, label='Z(t)')
+            t = int(given_t + n_tail_points)
+            fig.clear(keep_observers=True)
+            ax = fig.add_subplot(projection='3d')
+            if self.config.dark_mode == True:
+                # ax.grid(False)
+                ax.set_facecolor("black")
+                ax.w_xaxis.pane.fill = False
+                ax.w_yaxis.pane.fill = False
+                ax.w_zaxis.pane.fill = False
 
-            # phi = 20*np.sin(k) + phi_0
-            # phi = 0
-            # print(phi)
+            if t > line_interval:
+                sp = t - line_interval
+            else:
+                sp = 0
+            ax.plot3D(embedded[sp:t, 0], embedded[sp:t, 1], embedded[sp:t, 2], '-', markerfacecolor=line_color, markersize=1, linewidth=1, color=line_color, label='Z')
+            if t > n_tail_points:
+                ax.plot3D(embedded[t-n_tail_points:t, 0], embedded[t-n_tail_points:t, 1], embedded[t-n_tail_points:t, 2], '-o', markerfacecolor='orange', mec='darkblue', markersize=12, linewidth=2, label='Z(t)')
+
             ax.view_init(phi, dtheta * t)  #view_init(elev=None, azim=None)
             # ax.axis('off')  # for saving transparent gifs
             ax.dist = 8
             plt.draw()
-            plt.pause(.01)
-            # fig2.savefig(self.config.movie_out_location / Path(f'frame_{t:03}.png'), transparent=False, dpi='figure', bbox_inches=None)
-
-            # k += dk
-            # print(t)
-            return mplfig_to_npimage(fig2)
+            return mplfig_to_npimage(fig)
 
         # movieWriter = VideoWriter(self.config.movie_out_location, "movie.avi", fps = float(self.tf.time_resolution))
         movieWriter = MovieWriter(frame_fnc, self.config.movie_out_location,"movie.mp4", n_frames, float(self.tf.time_resolution), self.config.track_audio_location)
