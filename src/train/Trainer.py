@@ -66,7 +66,7 @@ class Trainer:
                     seq_gt = embedded_seq[:, -1]
                     seq_loss = self.seq_loss_fn(seq_pred, seq_gt)
                     self.logger.log({"seq_loss": seq_loss.detach().cpu().numpy()}, commit=False)
-                    loss = rec_loss + 0.01 * seq_loss
+                    loss = rec_loss + self.config.trainparams.seq_loss_weight * seq_loss
                 else:
                     loss = rec_loss
 

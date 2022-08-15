@@ -9,3 +9,4 @@ class Trainparams:
     seq_prediction_start_epoch : int = 0
     rec_loss : str = "bce"
     seq_loss : str = "mse"
+    seq_loss_weight : float = 0.01
