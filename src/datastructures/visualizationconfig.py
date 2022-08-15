@@ -10,3 +10,4 @@ class VisualizationConfig:
     modelstorageconfig : ModelStorageConfig
     track_features_location : Path
     movie_out_location : Path
+    track_audio_location : Path = None

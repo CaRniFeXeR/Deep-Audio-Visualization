@@ -1,6 +1,8 @@
 from pathlib import Path
 from matplotlib import pyplot as plt
 
+from .moviewriter import MovieWriter
+
 plt.switch_backend('agg')
 
 import torch
@@ -10,6 +12,7 @@ from ..datastructures.visualizationconfig import VisualizationConfig
 from ..io.trackfeaturesfilehandler import TrackFeaturesFileHandler
 from ..model.audiomodel import AudioModel
 from .videowriter import VideoWriter
+from moviepy.video.io.bindings import mplfig_to_npimage
 import numpy as np
 
 
@@ -83,31 +86,34 @@ class EmbeddingVisualizer:
         dtheta = 0.13/2.1  # 0.02  #rotation rate deg
         k = 0
         dk = 0  # 2*np.pi/360*0.05
-        theta = 0
+        theta = 1
         # phi_0 = 15
         phi = 35  # elevation angle
         render_interval = 1
-
-        for t in range(tail_points, int(len(embedded)), render_interval):
+        n_frames = int(len(embedded)) - tail_points
+        # n_frames = 200
+        # for t in range(tail_points, int(len(embedded)), render_interval):
+        def frame_fnc(given_t : float):
+            t = int(given_t + tail_points)
+            fig2.clear(keep_observers=True)
             ax = fig2.add_subplot(projection='3d')
             ax.plot3D(embedded[:t, 0], embedded[:t, 1], embedded[:t, 2], '-', markerfacecolor='black', markersize=1, linewidth=1, color='black', label='Z')
             ax.plot3D(embedded[t-tail_points:t, 0], embedded[t-tail_points:t, 1], embedded[t-tail_points:t, 2], '-o', markerfacecolor='orange', mec='darkblue', markersize=12, linewidth=2, label='Z(t)')
 
             # phi = 20*np.sin(k) + phi_0
             # phi = 0
-            ax.view_init(phi, theta)  #view_init(elev=None, azim=None)
+            # print(phi)
+            ax.view_init(phi, dtheta * t)  #view_init(elev=None, azim=None)
             # ax.axis('off')  # for saving transparent gifs
             ax.dist = 8
             plt.draw()
             plt.pause(.01)
-            fig2.savefig(self.config.movie_out_location / Path(f'frame_{t:03}.png'), transparent=False, dpi='figure', bbox_inches=None)
-            fig2.clear(keep_observers=True)
+            # fig2.savefig(self.config.movie_out_location / Path(f'frame_{t:03}.png'), transparent=False, dpi='figure', bbox_inches=None)
 
-            theta += dtheta
             # k += dk
-            print(t)
+            # print(t)
+            return mplfig_to_npimage(fig2)
 
-        movieWriter = VideoWriter(self.config.movie_out_location, "movie.avi", fps = float(self.tf.time_resolution))
+        # movieWriter = VideoWriter(self.config.movie_out_location, "movie.avi", fps = float(self.tf.time_resolution))
+        movieWriter = MovieWriter(frame_fnc, self.config.movie_out_location,"movie.mp4", n_frames, float(self.tf.time_resolution), self.config.track_audio_location)
         movieWriter.write_video_file()
-
-
