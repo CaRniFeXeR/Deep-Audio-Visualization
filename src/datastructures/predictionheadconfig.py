@@ -4,3 +4,4 @@ from dataclasses import dataclass
 class SeqPredictorConfig:
     n_layers : int = 2
     latent_dim : int = None
+    dropout : float = 0.0
