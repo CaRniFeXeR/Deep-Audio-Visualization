@@ -12,3 +12,4 @@ class VisualizationConfig:
     movie_out_location : Path
     track_audio_location : Path = None
     dark_mode : bool = True
+    plot_bins : bool = False
