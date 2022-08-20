@@ -1,9 +1,12 @@
 from pathlib import Path
 from matplotlib import pyplot as plt
 
+from ..preprocessing.sequence_smoother import smooth_sequence
+
+from ..visualization.equalizervishandler import EqualizerVisHandler
 from .moviewriter import MovieWriter
 
-plt.switch_backend('agg')
+# plt.switch_backend('agg')
 
 import torch
 
@@ -11,7 +14,6 @@ from ..io.modelfilehandler import ModelFileHandler
 from ..datastructures.visualizationconfig import VisualizationConfig
 from ..io.trackfeaturesfilehandler import TrackFeaturesFileHandler
 from ..model.audiomodel import AudioModel
-from .videowriter import VideoWriter
 from moviepy.video.io.bindings import mplfig_to_npimage
 import numpy as np
 
@@ -88,14 +90,19 @@ class EmbeddingVisualizer:
             fig.set_facecolor("black")
         dtheta = 0.13/2.1  # 0.02  #rotation rate deg
         phi = 35  # elevation angle
-        render_interval = 1
         n_frames = int(len(embedded)) # - n_tail_points
         line_interval = 500
-        n_frames = 2000
+        n_frames = 1000
+        smooth_factor = 5
+        embedded = smooth_sequence(embedded, smooth_factor)
+        eqVis = EqualizerVisHandler(embedded, smooth_sequence(self.tf.get_normalized_magnitudes(),20), self.tf.frame_height)
         def frame_fnc(given_t : float):
             t = int(given_t + n_tail_points)
             fig.clear(keep_observers=True)
             ax = fig.add_subplot(projection='3d')
+            eqVis.set_axis_scale(ax)
+            eqVis.render_equalizer_bar(t,ax)
+
             if self.config.dark_mode == True:
                 # ax.grid(False)
                 ax.set_facecolor("black")
@@ -107,16 +114,18 @@ class EmbeddingVisualizer:
                 sp = t - line_interval
             else:
                 sp = 0
+            #todo fadeout
             ax.plot3D(embedded[sp:t, 0], embedded[sp:t, 1], embedded[sp:t, 2], '-', markerfacecolor=line_color, markersize=1, linewidth=1, color=line_color, label='Z')
             if t > n_tail_points:
-                ax.plot3D(embedded[t-n_tail_points:t, 0], embedded[t-n_tail_points:t, 1], embedded[t-n_tail_points:t, 2], '-o', markerfacecolor='orange', mec='darkblue', markersize=12, linewidth=2, label='Z(t)')
+                ax.plot3D(embedded[t-n_tail_points:t, 0], embedded[t-n_tail_points:t, 1], embedded[t-n_tail_points:t, 2], '-o', markerfacecolor='orange', mec='darkblue', markersize=12* eqVis.s_mag_norm[-1,t], linewidth=2, label='Z(t)')
 
             ax.view_init(phi, dtheta * t)  #view_init(elev=None, azim=None)
             # ax.axis('off')  # for saving transparent gifs
             ax.dist = 8
+
+
             plt.draw()
             return mplfig_to_npimage(fig)
 
-        # movieWriter = VideoWriter(self.config.movie_out_location, "movie.avi", fps = float(self.tf.time_resolution))
-        movieWriter = MovieWriter(frame_fnc, self.config.movie_out_location,"movie.mp4", n_frames, float(self.tf.time_resolution), self.config.track_audio_location)
+        movieWriter = MovieWriter(frame_fnc, self.config.movie_out_location,f"{self.config.track_features_location.name}_sm{smooth_factor}.mp4", n_frames, float(self.tf.time_resolution), self.config.track_audio_location)
         movieWriter.write_video_file()

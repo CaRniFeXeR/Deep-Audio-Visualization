@@ -11,6 +11,7 @@ class Decoder(torch.nn.Module):
         assert self.config.latent_dim is not None
         self.lin_latent = torch.nn.Linear(self.config.latent_dim, 5 * 32)
         stride = 2
+        padding = 1
         layers = []
         layers.append(torch.nn.ConvTranspose1d(32, 64, kernel_size=3, stride=stride, padding=1, output_padding=0, dilation=2))
         layers.append(torch.nn.BatchNorm1d(64))
@@ -27,7 +28,27 @@ class Decoder(torch.nn.Module):
         layers.append(torch.nn.LeakyReLU())
         if self.config.output_length < 45:
             stride = 1
-        layers.append(torch.nn.ConvTranspose1d(128, self.config.output_dim, kernel_size=3, stride=stride, padding=1, output_padding=stride - 1))
+        layers.append(torch.nn.ConvTranspose1d(128, 128, kernel_size=3, stride=stride, padding=1, output_padding=stride - 1))
+        layers.append(torch.nn.BatchNorm1d(128))
+        layers.append(torch.nn.LeakyReLU())
+        if self.config.output_length < 89:
+            stride = 1
+        else:
+            padding = 0
+        layers.append(torch.nn.ConvTranspose1d(128, 128, kernel_size=3, stride=stride, padding=padding, output_padding=stride - 1))
+        layers.append(torch.nn.BatchNorm1d(128))
+        layers.append(torch.nn.LeakyReLU())
+        if self.config.output_length < 177:
+            stride = 1
+        else:
+            padding = 0
+            # padding = 2
+            padding = 6
+            # stride = 1
+        if self.config.output_length == 174:
+            padding = 3
+            stride = 1
+        layers.append(torch.nn.ConvTranspose1d(128, self.config.output_dim, kernel_size=3, stride=stride, padding=padding, output_padding=stride - 1))
         layers.append(torch.nn.LeakyReLU())
         self.layers = torch.nn.ModuleList(layers)
 
@@ -35,8 +56,8 @@ class Decoder(torch.nn.Module):
         batch_size = embedded_points.shape[0]
         data = self.lin_latent(embedded_points).view((batch_size, 32, 5))
         for layer in self.layers:
-            # print(layer)
             # print(data.shape)
+            # print(layer)
             data = layer(data)
 
         return data
