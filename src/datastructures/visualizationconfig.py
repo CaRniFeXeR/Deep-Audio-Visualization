@@ -13,3 +13,4 @@ class VisualizationConfig:
     track_audio_location : Path = None
     dark_mode : bool = True
     plot_bins : bool = False
+    show_grid : bool = False

@@ -82,29 +82,34 @@ class EmbeddingVisualizer:
         print(f"time spanning input tensor: {(l-1)*self.tf.dt/self.tf.time_resolution} (s)")  # should equal T_start
         print(f"Total frames to be rendered: {samples}")
 
-        n_tail_points = 15
+        n_tail_points = 14
+        opening_window = [0.1, 0.2, 0.4, 0.6, 0.8] + (n_tail_points - 5) * [1.0]
         print(f"T_start including tail points {T_start+(n_tail_points-1)/self.tf.time_resolution} (s), T_end {T_end} (s)")
 
         line_color = "white" if self.config.dark_mode else "black"
-        a = 6
+        a = 8
+        plt.rcParams['grid.color'] = (0.5, 0.5, 0.5, 0.1)
         fig = plt.figure(figsize=(1.7778*a, a))  # e.g. figsize=(4, 3) --> img saved has resolution (400, 300) width by height when using dpi='figure' in savefig
         if self.config.dark_mode == True:
             fig.set_facecolor("black")
         dtheta = 0.13/2.1  # 0.02  #rotation rate deg
         phi = 35  # elevation angle
         n_frames = int(len(embedded))  # - n_tail_points
-        line_interval = 250
+        line_interval = 200
         n_frames = 3000
         smooth_factor = 4
+        pooling_kernel_size = 14
         embedded = smooth_sequence(embedded, smooth_factor)
-        eqVis = EqualizerVisHandler(embedded, smooth_sequence(self.tf.get_normalized_magnitudes(), 8), pooling_kernel_size=12)
+        eqVis = EqualizerVisHandler(embedded, smooth_sequence(self.tf.get_normalized_magnitudes(), 4), pooling_kernel_size=pooling_kernel_size)
         n_bins = eqVis.s_mag_reduced.shape[0]
         angle_step = 360 / n_bins / 180 * np.pi
+        print("n_bins", n_bins)
 
         def frame_fnc(given_t: float):
             t = int(given_t + n_tail_points)
             fig.clear(keep_observers=True)
             ax = fig.add_subplot(projection='3d')
+            ax.grid(self.config.show_grid)
             eqVis.set_axis_scale(ax)
             if self.config.plot_bins:
                 eqVis.render_equalizer_bar(t, ax)
@@ -116,6 +121,11 @@ class EmbeddingVisualizer:
                 ax.w_yaxis.pane.fill = False
                 ax.w_zaxis.pane.fill = False
 
+                # Transparent spines
+                ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+                ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+                ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+
             if t > line_interval:
                 sp = t - line_interval
             else:
@@ -124,26 +134,18 @@ class EmbeddingVisualizer:
             n_points = t - sp
             # lc = Line3DCollection(embedded[sp:t], linewidths = np.arange(n_points) / n_points * 1.1, color=line_color)
             # ax.add_collection(lc)
-            ax.plot3D(embedded[sp:t, 0], embedded[sp:t, 1], embedded[sp:t, 2], '-', markerfacecolor=line_color, markersize=1, linewidth=1, color=line_color, alpha = 0.3, label='Z')
+            ax.plot3D(embedded[sp:t, 0], embedded[sp:t, 1], embedded[sp:t, 2], '-', markerfacecolor=line_color, markersize=1, linewidth=1, color=line_color, alpha=0.2, label='Z')
             if t > n_tail_points:
                 tail_s = t-n_tail_points
                 # ax.plot3D(embedded[tail_s:t, 0], embedded[tail_s:t, 1], embedded[tail_s:t, 2], '-o', markerfacecolor='orange', mec='darkblue', markersize=12* (eqVis.s_mag_reduced[0,t]*10 + 0.5), linewidth=2, label='Z(t)')
-                
+
                 angle = 0
                 for fbin in range(0, n_bins):
-                    feqbin_factor = eqVis.s_mag_reduced[fbin, tail_s:t] * 300
+                    feqbin_factor = eqVis.s_mag_reduced[fbin, tail_s:t] * opening_window * 120
+                    mean_feqbin_intensity = eqVis.s_mag_reduced[fbin, tail_s:t].mean() * 10
 
-                    ax.plot3D(embedded[tail_s:t, 0], embedded[tail_s:t, 1] + feqbin_factor * math.cos(angle), embedded[tail_s:t, 2] + feqbin_factor * math.sin(angle), '-', markerfacecolor='darkblue', mec='darkblue', markersize=1.0, linewidth=1.0, label='Z(t)')
+                    ax.plot3D(embedded[tail_s:t, 0] - feqbin_factor * math.cos(angle), embedded[tail_s:t, 1] + feqbin_factor * math.cos(angle), embedded[tail_s:t, 2] + feqbin_factor * math.sin(angle), '-', markersize=0.8 + mean_feqbin_intensity, linewidth=0.8 + mean_feqbin_intensity, label='Z(t)')
                     angle += angle_step
-
-                # feqbin_factor = eqVis.s_mag_reduced[0,tail_s:t] * 500
-                # ax.plot3D(embedded[tail_s:t, 0], embedded[tail_s:t, 1], embedded[tail_s:t, 2] + feqbin_factor, '-', markerfacecolor='darkblue', mec='darkblue', markersize=1, linewidth=1, label='Z(t)')
-                # feqbin_factor = eqVis.s_mag_reduced[1,tail_s:t] * 500
-                # ax.plot3D(embedded[tail_s:t, 0], embedded[tail_s:t, 1] + feqbin_factor, embedded[tail_s:t, 2], '-', markerfacecolor='darkblue', mec='darkblue', markersize=1, linewidth=1, label='Z(t)')
-                # feqbin_factor = eqVis.s_mag_reduced[2,tail_s:t] * 500
-                # ax.plot3D(embedded[tail_s:t, 0] + feqbin_factor, embedded[tail_s:t, 1], embedded[tail_s:t, 2], '-', markerfacecolor='darkblue', mec='darkblue', markersize=1, linewidth=1, label='Z(t)')
-                # feqbin_factor = eqVis.s_mag_reduced[3,tail_s:t] * 500
-                # ax.plot3D(embedded[tail_s:t, 0], embedded[tail_s:t, 1], embedded[tail_s:t, 2] - feqbin_factor, '-', markerfacecolor='darkblue', mec='darkblue', markersize=1, linewidth=1, label='Z(t)')
 
             ax.view_init(phi, dtheta * t)  # view_init(elev=None, azim=None)
             # ax.axis('off')  # for saving transparent gifs
@@ -152,5 +154,5 @@ class EmbeddingVisualizer:
             plt.draw()
             return mplfig_to_npimage(fig)
 
-        movieWriter = MovieWriter(frame_fnc, self.config.movie_out_location, f"{self.config.track_features_location.name}_sm{smooth_factor}.mp4", n_frames, float(self.tf.time_resolution), self.config.track_audio_location)
+        movieWriter = MovieWriter(frame_fnc, self.config.movie_out_location, f"{self.config.track_features_location.name}_sm{smooth_factor}p{pooling_kernel_size}.mp4", n_frames, float(self.tf.time_resolution), self.config.track_audio_location)
         movieWriter.write_video_file()
