@@ -82,8 +82,9 @@ class EmbeddingVisualizer:
         print(f"time spanning input tensor: {(l-1)*self.tf.dt/self.tf.time_resolution} (s)")  # should equal T_start
         print(f"Total frames to be rendered: {samples}")
 
-        n_tail_points = 14
-        opening_window = [0.1, 0.2, 0.4, 0.6, 0.8] + (n_tail_points - 5) * [1.0]
+        n_tail_points = 18
+        window_start = [0.1, 0.15,0.2, 0.25,0.3, 0.4, 0.55, 0.6, 0.7, 0.8, 0.9]
+        opening_window = window_start + (n_tail_points - len(window_start)) * [1.0]
         print(f"T_start including tail points {T_start+(n_tail_points-1)/self.tf.time_resolution} (s), T_end {T_end} (s)")
 
         line_color = "white" if self.config.dark_mode else "black"
@@ -96,11 +97,11 @@ class EmbeddingVisualizer:
         phi = 35  # elevation angle
         n_frames = int(len(embedded))  # - n_tail_points
         line_interval = 200
-        n_frames = 3000
+        n_frames = 4000
         smooth_factor = 4
-        pooling_kernel_size = 14
+        pooling_kernel_size = 10
         embedded = smooth_sequence(embedded, smooth_factor)
-        eqVis = EqualizerVisHandler(embedded, smooth_sequence(self.tf.get_normalized_magnitudes(), 4), pooling_kernel_size=pooling_kernel_size)
+        eqVis = EqualizerVisHandler(embedded, smooth_sequence(self.tf.get_normalized_magnitudes(), 2), pooling_kernel_size=pooling_kernel_size)
         n_bins = eqVis.s_mag_reduced.shape[0]
         angle_step = 360 / n_bins / 180 * np.pi
         print("n_bins", n_bins)
@@ -126,6 +127,11 @@ class EmbeddingVisualizer:
                 ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
                 ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
 
+                # Transparent panes
+                ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+                ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+                ax.set_axis_off()
+
             if t > line_interval:
                 sp = t - line_interval
             else:
@@ -137,19 +143,22 @@ class EmbeddingVisualizer:
             ax.plot3D(embedded[sp:t, 0], embedded[sp:t, 1], embedded[sp:t, 2], '-', markerfacecolor=line_color, markersize=1, linewidth=1, color=line_color, alpha=0.2, label='Z')
             if t > n_tail_points:
                 tail_s = t-n_tail_points
+                t_s_half = t - int(n_tail_points / 2)
                 # ax.plot3D(embedded[tail_s:t, 0], embedded[tail_s:t, 1], embedded[tail_s:t, 2], '-o', markerfacecolor='orange', mec='darkblue', markersize=12* (eqVis.s_mag_reduced[0,t]*10 + 0.5), linewidth=2, label='Z(t)')
 
                 angle = 0
                 for fbin in range(0, n_bins):
-                    feqbin_factor = eqVis.s_mag_reduced[fbin, tail_s:t] * opening_window * 120
-                    mean_feqbin_intensity = eqVis.s_mag_reduced[fbin, tail_s:t].mean() * 10
+                    feqbin_factor = eqVis.s_mag_reduced[fbin, tail_s:t] * opening_window * 110
+                    mean_feqbin_intensity = eqVis.s_mag_reduced[fbin, t_s_half:t].mean() 
+                    size = 0.8 + mean_feqbin_intensity * 12
+                    alpha = 0.5 + 0.5 * mean_feqbin_intensity
 
-                    ax.plot3D(embedded[tail_s:t, 0] - feqbin_factor * math.cos(angle), embedded[tail_s:t, 1] + feqbin_factor * math.cos(angle), embedded[tail_s:t, 2] + feqbin_factor * math.sin(angle), '-', markersize=0.8 + mean_feqbin_intensity, linewidth=0.8 + mean_feqbin_intensity, label='Z(t)')
+                    ax.plot3D(embedded[tail_s:t, 0] - feqbin_factor * math.cos(angle), embedded[tail_s:t, 1] + feqbin_factor * math.cos(angle), embedded[tail_s:t, 2] + feqbin_factor * math.sin(angle), '-', markersize=size, linewidth=size, alpha = alpha, label='Z(t)')
                     angle += angle_step
 
             ax.view_init(phi, dtheta * t)  # view_init(elev=None, azim=None)
             # ax.axis('off')  # for saving transparent gifs
-            ax.dist = 8
+            ax.dist = 7
 
             plt.draw()
             return mplfig_to_npimage(fig)
