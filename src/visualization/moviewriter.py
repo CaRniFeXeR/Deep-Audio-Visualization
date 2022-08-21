@@ -16,7 +16,7 @@ class MovieWriter:
         print(fps)
 
     def write_video_file(self):
-        video = DataVideoClip(list(range(0, self.n_frames - 1)), self.frame_fnc, fps=self.fps)
+        video = DataVideoClip(list(range(0, self.n_frames - 2)), self.frame_fnc, fps=self.fps)
         if self.audio_file_path is not None:
             print(f"adding audio track  {self.audio_file_path} to the video")
             audio_clip = AudioFileClip(str(self.audio_file_path))
