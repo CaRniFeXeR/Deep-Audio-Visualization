@@ -14,3 +14,7 @@ class VisualizationConfig:
     dark_mode : bool = True
     plot_bins : bool = False
     show_grid : bool = False
+    feqbin_offset_intensity : int = 110
+    feqbin_linewidth_intensity : int = 12
+    pooling_kernel_size : int = 10
+    embed_seq_smooth_window_size : int = 4

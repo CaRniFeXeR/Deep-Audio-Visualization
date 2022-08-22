@@ -3,7 +3,8 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-from ..preprocessing.sequence_smoother import smooth_sequence
+from ..utils.interpolationhandler import smooth_curve
+from ..utils.sequence_smoother import smooth_sequence
 
 from ..visualization.equalizervishandler import EqualizerVisHandler
 from .moviewriter import MovieWriter
@@ -50,7 +51,7 @@ class EmbeddingVisualizer:
     def plot_whole_track_trajectory(self):
         embedded = self.embed_track()
         a = 8
-        fig = plt.figure(figsize=(1.7778 * a, a))  # e.g. figsize=(4, 3) --> img saved has resolution (400, 300) width by height when using dpi='figure' in savefig
+        fig = plt.figure(figsize=(1.7778 * a, a), constrained_layout=True)  # e.g. figsize=(4, 3) --> img saved has resolution (400, 300) width by height when using dpi='figure' in savefig
         ax = fig.gca(projection='3d')
 
         # ax.set_xlabel('$X$', fontsize=20)
@@ -88,18 +89,18 @@ class EmbeddingVisualizer:
         print(f"T_start including tail points {T_start+(n_tail_points-1)/self.tf.time_resolution} (s), T_end {T_end} (s)")
 
         line_color = "white" if self.config.dark_mode else "black"
-        a = 8
+        a = 19
         plt.rcParams['grid.color'] = (0.5, 0.5, 0.5, 0.1)
         fig = plt.figure(figsize=(1.7778*a, a))  # e.g. figsize=(4, 3) --> img saved has resolution (400, 300) width by height when using dpi='figure' in savefig
         if self.config.dark_mode == True:
             fig.set_facecolor("black")
         dtheta = 0.13/2.1  # 0.02  #rotation rate deg
-        phi = 35  # elevation angle
+        phi = 10  # elevation angle
         n_frames = int(len(embedded))  # - n_tail_points
         line_interval = 200
-        n_frames = 4000
-        smooth_factor = 4
-        pooling_kernel_size = 10
+        n_frames = 2000
+        smooth_factor = self.config.embed_seq_smooth_window_size
+        pooling_kernel_size = self.config.pooling_kernel_size
         embedded = smooth_sequence(embedded, smooth_factor)
         eqVis = EqualizerVisHandler(embedded, smooth_sequence(self.tf.get_normalized_magnitudes(), 2), pooling_kernel_size=pooling_kernel_size)
         n_bins = eqVis.s_mag_reduced.shape[0]
@@ -140,7 +141,12 @@ class EmbeddingVisualizer:
             n_points = t - sp
             # lc = Line3DCollection(embedded[sp:t], linewidths = np.arange(n_points) / n_points * 1.1, color=line_color)
             # ax.add_collection(lc)
-            ax.plot3D(embedded[sp:t, 0], embedded[sp:t, 1], embedded[sp:t, 2], '-', markerfacecolor=line_color, markersize=1, linewidth=1, color=line_color, alpha=0.2, label='Z')
+            if t > 10:
+                # tck, u = interpolate.splprep([embedded[sp:t, 0], embedded[sp:t, 1], embedded[sp:t, 2]], s=2)
+                # x_fine, y_fine, z_fine = interpolate.splev(np.linspace(0,1,n_points*2), tck)
+                p_smoothed = smooth_curve(embedded[sp:t])
+                # ax.plot3D(embedded[sp:t, 0], embedded[sp:t, 1], embedded[sp:t, 2], '-', markerfacecolor=line_color, markersize=2, linewidth=2, color=line_color, alpha=0.2, label='Z')
+                ax.plot3D(p_smoothed[0], p_smoothed[1], p_smoothed[2], '-', markerfacecolor=line_color, markersize=2, linewidth=2, color=line_color, alpha=0.2, label='Z')
             if t > n_tail_points:
                 tail_s = t-n_tail_points
                 t_s_half = t - int(n_tail_points / 2)
@@ -148,18 +154,19 @@ class EmbeddingVisualizer:
 
                 angle = 0
                 for fbin in range(0, n_bins):
-                    feqbin_factor = eqVis.s_mag_reduced[fbin, tail_s:t] * opening_window * 110
+                    feqbin_factor = eqVis.s_mag_reduced[fbin, tail_s:t] * opening_window * self.config.feqbin_offset_intensity
                     mean_feqbin_intensity = eqVis.s_mag_reduced[fbin, t_s_half:t].mean() 
-                    size = 0.8 + mean_feqbin_intensity * 12
+                    size = 2 + mean_feqbin_intensity * self.config.feqbin_linewidth_intensity
                     alpha = 0.5 + 0.5 * mean_feqbin_intensity
-
-                    ax.plot3D(embedded[tail_s:t, 0] - feqbin_factor * math.cos(angle), embedded[tail_s:t, 1] + feqbin_factor * math.cos(angle), embedded[tail_s:t, 2] + feqbin_factor * math.sin(angle), '-', markersize=size, linewidth=size, alpha = alpha, label='Z(t)')
+                    adjusted_line = [embedded[tail_s:t, 0] - feqbin_factor * math.cos(angle), embedded[tail_s:t, 1] + feqbin_factor * math.cos(angle), embedded[tail_s:t, 2] + feqbin_factor * math.sin(angle)]
+                    line_smoothed = smooth_curve(adjusted_line)
+                    ax.plot3D(line_smoothed[0],line_smoothed[1],line_smoothed[2], '-', markersize=size, linewidth=size, alpha = alpha, label='Z(t)')
                     angle += angle_step
 
             ax.view_init(phi, dtheta * t)  # view_init(elev=None, azim=None)
             # ax.axis('off')  # for saving transparent gifs
-            ax.dist = 7
-
+            ax.dist = 6
+            plt.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
             plt.draw()
             return mplfig_to_npimage(fig)
 
