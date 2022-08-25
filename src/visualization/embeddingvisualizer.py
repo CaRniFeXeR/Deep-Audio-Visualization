@@ -3,7 +3,7 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
-from ..utils.interpolationhandler import smooth_curve
+from ..utils.interpolationhandler import spine_interpolate
 from ..utils.sequence_smoother import smooth_sequence
 
 from ..visualization.equalizervishandler import EqualizerVisHandler
@@ -83,32 +83,35 @@ class EmbeddingVisualizer:
         print(f"time spanning input tensor: {(l-1)*self.tf.dt/self.tf.time_resolution} (s)")  # should equal T_start
         print(f"Total frames to be rendered: {samples}")
 
-        n_tail_points = 18
-        window_start = [0.1, 0.15,0.2, 0.25,0.3, 0.4, 0.55, 0.6, 0.7, 0.8, 0.9]
+        n_tail_points = 30
+        window_start = [0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.55, 0.6, 0.7, 0.8, 0.9]
         opening_window = window_start + (n_tail_points - len(window_start)) * [1.0]
         print(f"T_start including tail points {T_start+(n_tail_points-1)/self.tf.time_resolution} (s), T_end {T_end} (s)")
 
         line_color = "white" if self.config.dark_mode else "black"
-        a = 19
+        a = 9
         plt.rcParams['grid.color'] = (0.5, 0.5, 0.5, 0.1)
         fig = plt.figure(figsize=(1.7778*a, a))  # e.g. figsize=(4, 3) --> img saved has resolution (400, 300) width by height when using dpi='figure' in savefig
         if self.config.dark_mode == True:
             fig.set_facecolor("black")
         dtheta = 0.13/2.1  # 0.02  #rotation rate deg
-        phi = 10  # elevation angle
+        phi = 35  # elevation angle
         n_frames = int(len(embedded))  # - n_tail_points
-        line_interval = 200
+        line_interval = 500
         n_frames = 2000
         smooth_factor = self.config.embed_seq_smooth_window_size
         pooling_kernel_size = self.config.pooling_kernel_size
         embedded = smooth_sequence(embedded, smooth_factor)
         eqVis = EqualizerVisHandler(embedded, smooth_sequence(self.tf.get_normalized_magnitudes(), 2), pooling_kernel_size=pooling_kernel_size)
+        # embedded = spine_interpolate([embedded[:,0], embedded[:, 1], embedded[:, 2]])
+        embedded_s = spine_interpolate([embedded[:-10,0], embedded[:-10, 1], embedded[:-10, 2]])
         n_bins = eqVis.s_mag_reduced.shape[0]
         angle_step = 360 / n_bins / 180 * np.pi
         print("n_bins", n_bins)
 
         def frame_fnc(given_t: float):
-            t = int(given_t + n_tail_points)
+            t = int(given_t * 2 + n_tail_points) 
+            t_org = int(given_t + n_tail_points) 
             fig.clear(keep_observers=True)
             ax = fig.add_subplot(projection='3d')
             ax.grid(self.config.show_grid)
@@ -137,16 +140,11 @@ class EmbeddingVisualizer:
                 sp = t - line_interval
             else:
                 sp = 0
-            # todo fadeout
             n_points = t - sp
-            # lc = Line3DCollection(embedded[sp:t], linewidths = np.arange(n_points) / n_points * 1.1, color=line_color)
-            # ax.add_collection(lc)
-            if t > 10:
-                # tck, u = interpolate.splprep([embedded[sp:t, 0], embedded[sp:t, 1], embedded[sp:t, 2]], s=2)
-                # x_fine, y_fine, z_fine = interpolate.splev(np.linspace(0,1,n_points*2), tck)
-                p_smoothed = smooth_curve(embedded[sp:t])
-                # ax.plot3D(embedded[sp:t, 0], embedded[sp:t, 1], embedded[sp:t, 2], '-', markerfacecolor=line_color, markersize=2, linewidth=2, color=line_color, alpha=0.2, label='Z')
-                ax.plot3D(p_smoothed[0], p_smoothed[1], p_smoothed[2], '-', markerfacecolor=line_color, markersize=2, linewidth=2, color=line_color, alpha=0.2, label='Z')
+            if t > 20:
+                t_half = sp + int(np.round((t-sp) / 2))
+                ax.plot3D(embedded_s[0][sp:t_half], embedded_s[1][sp:t_half], embedded_s[2][sp:t_half], '-', markerfacecolor=line_color, markersize=1.5, linewidth=1.5, color=line_color, alpha=0.2, label='Z')
+                ax.plot3D(embedded_s[0][t_half:t], embedded_s[1][t_half:t], embedded_s[2][t_half:t], '-', markerfacecolor=line_color, markersize=2, linewidth=2, color=line_color, alpha=0.4, label='Z')
             if t > n_tail_points:
                 tail_s = t-n_tail_points
                 t_s_half = t - int(n_tail_points / 2)
@@ -155,17 +153,19 @@ class EmbeddingVisualizer:
                 angle = 0
                 for fbin in range(0, n_bins):
                     feqbin_factor = eqVis.s_mag_reduced[fbin, tail_s:t] * opening_window * self.config.feqbin_offset_intensity
-                    mean_feqbin_intensity = eqVis.s_mag_reduced[fbin, t_s_half:t].mean() 
+                    mean_feqbin_intensity = eqVis.s_mag_reduced[fbin, t_s_half:t].mean()
                     size = 2 + mean_feqbin_intensity * self.config.feqbin_linewidth_intensity
                     alpha = 0.5 + 0.5 * mean_feqbin_intensity
-                    adjusted_line = [embedded[tail_s:t, 0] - feqbin_factor * math.cos(angle), embedded[tail_s:t, 1] + feqbin_factor * math.cos(angle), embedded[tail_s:t, 2] + feqbin_factor * math.sin(angle)]
-                    line_smoothed = smooth_curve(adjusted_line)
-                    ax.plot3D(line_smoothed[0],line_smoothed[1],line_smoothed[2], '-', markersize=size, linewidth=size, alpha = alpha, label='Z(t)')
+                    # adjusted_line = [embedded[tail_s:t, 0] - feqbin_factor * math.cos(angle), embedded[tail_s:t, 1] + feqbin_factor * math.cos(angle), embedded[tail_s:t, 2] + feqbin_factor * math.sin(angle)]
+                    adjusted_line = [embedded_s[0][tail_s:t] - feqbin_factor * math.cos(angle), embedded_s[1][tail_s:t] + feqbin_factor * math.cos(angle), embedded_s[2][tail_s:t] + feqbin_factor * math.sin(angle)]
+                    # line_smoothed = spine_interpolate(adjusted_line)
+                    # ax.plot3D(line_smoothed[0], line_smoothed[1], line_smoothed[2], '-', markersize=size, linewidth=size, alpha=alpha, label='Z(t)')
+                    ax.plot3D(adjusted_line[0], adjusted_line[1], adjusted_line[2], '-', markersize=size, linewidth=size, alpha=alpha, label='Z(t)')
                     angle += angle_step
 
             ax.view_init(phi, dtheta * t)  # view_init(elev=None, azim=None)
             # ax.axis('off')  # for saving transparent gifs
-            ax.dist = 6
+            ax.dist = 9
             plt.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
             plt.draw()
             return mplfig_to_npimage(fig)

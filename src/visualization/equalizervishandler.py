@@ -9,6 +9,11 @@ class EqualizerVisHandler():
         self.min_embedded = embedded[50:-50].min(axis=0)
         self.embeded_range = self.max_embedded - self.min_embedded
         print(self.embeded_range)
+        s_mag_extend = []
+        for i in range(s_mag_norm.shape[-1] - 1):
+            s_mag_extend.append(s_mag_norm[:,i])
+            s_mag_extend.append((s_mag_norm[:,i] + s_mag_norm[:,i+1]) / 2)
+        s_mag_norm = np.array(s_mag_extend).transpose()
         s_mag_reduced_max = block_reduce(s_mag_norm, block_size=(pooling_kernel_size, 1), func=np.max)
         s_mag_reduced_avg = block_reduce(s_mag_norm, block_size=(pooling_kernel_size, 1), func=np.mean)
         self.s_mag_reduced = (s_mag_reduced_max + s_mag_reduced_avg) / 2
