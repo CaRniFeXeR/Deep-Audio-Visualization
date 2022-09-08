@@ -9,7 +9,14 @@ from ..utils.sequence_smoother import smooth_sequence
 from ..visualization.equalizervishandler import EqualizerVisHandler
 from .moviewriter import MovieWriter
 
-# plt.switch_backend('agg')
+import sys
+
+
+gettrace = getattr(sys, 'gettrace', None)
+
+if gettrace is None:
+    plt.switch_backend('agg') #switch backend if debugger is not enabled
+plt.switch_backend('agg') #switch backend if debugger is not enabled
 
 import torch
 
@@ -50,7 +57,7 @@ class EmbeddingVisualizer:
 
     def plot_whole_track_trajectory(self):
         embedded = self.embed_track()
-        a = 8
+        a = 10.8
         fig = plt.figure(figsize=(1.7778 * a, a), constrained_layout=True)  # e.g. figsize=(4, 3) --> img saved has resolution (400, 300) width by height when using dpi='figure' in savefig
         ax = fig.gca(projection='3d')
 
@@ -89,7 +96,8 @@ class EmbeddingVisualizer:
         print(f"T_start including tail points {T_start+(n_tail_points-1)/self.tf.time_resolution} (s), T_end {T_end} (s)")
 
         line_color = "white" if self.config.dark_mode else "black"
-        a = 9
+        a = 10.9
+        # a = 8
         plt.rcParams['grid.color'] = (0.5, 0.5, 0.5, 0.1)
         fig = plt.figure(figsize=(1.7778*a, a))  # e.g. figsize=(4, 3) --> img saved has resolution (400, 300) width by height when using dpi='figure' in savefig
         if self.config.dark_mode == True:
@@ -98,20 +106,19 @@ class EmbeddingVisualizer:
         phi = 35  # elevation angle
         n_frames = int(len(embedded))  # - n_tail_points
         line_interval = 500
-        n_frames = 2000
+        n_frames = 3500
         smooth_factor = self.config.embed_seq_smooth_window_size
         pooling_kernel_size = self.config.pooling_kernel_size
         embedded = smooth_sequence(embedded, smooth_factor)
         eqVis = EqualizerVisHandler(embedded, smooth_sequence(self.tf.get_normalized_magnitudes(), 2), pooling_kernel_size=pooling_kernel_size)
-        # embedded = spine_interpolate([embedded[:,0], embedded[:, 1], embedded[:, 2]])
-        embedded_s = spine_interpolate([embedded[:-10,0], embedded[:-10, 1], embedded[:-10, 2]])
+        embedded_s = spine_interpolate([embedded[20:-40,0], embedded[20:-40, 1], embedded[20:-40, 2]])
         n_bins = eqVis.s_mag_reduced.shape[0]
         angle_step = 360 / n_bins / 180 * np.pi
         print("n_bins", n_bins)
 
         def frame_fnc(given_t: float):
-            t = int(given_t * 2 + n_tail_points) 
-            t_org = int(given_t + n_tail_points) 
+            t = int(given_t * 4 + n_tail_points) 
+            t_org = int(given_t + n_tail_points)      
             fig.clear(keep_observers=True)
             ax = fig.add_subplot(projection='3d')
             ax.grid(self.config.show_grid)
@@ -138,13 +145,16 @@ class EmbeddingVisualizer:
 
             if t > line_interval:
                 sp = t - line_interval
+                sp_org = t_org - line_interval
             else:
                 sp = 0
+                sp_org = 0
             n_points = t - sp
             if t > 20:
                 t_half = sp + int(np.round((t-sp) / 2))
-                ax.plot3D(embedded_s[0][sp:t_half], embedded_s[1][sp:t_half], embedded_s[2][sp:t_half], '-', markerfacecolor=line_color, markersize=1.5, linewidth=1.5, color=line_color, alpha=0.2, label='Z')
-                ax.plot3D(embedded_s[0][t_half:t], embedded_s[1][t_half:t], embedded_s[2][t_half:t], '-', markerfacecolor=line_color, markersize=2, linewidth=2, color=line_color, alpha=0.4, label='Z')
+                ax.plot3D(embedded_s[0][sp:t_half], embedded_s[1][sp:t_half], embedded_s[2][sp:t_half], '-', markerfacecolor=line_color, markersize=1.9, linewidth=1.9, color=line_color, alpha=0.25, label='Z')
+                ax.plot3D(embedded_s[0][t_half:t], embedded_s[1][t_half:t], embedded_s[2][t_half:t], '-', markerfacecolor=line_color, markersize=2, linewidth=2, color=line_color, alpha=0.35, label='Z')
+                #ax.plot3D(embedded[sp_org+20:t_org+20,0], embedded[sp_org+20:t_org+20,1], embedded[sp_org+20:t_org+20,2], '-', markerfacecolor="red", markersize=2, linewidth=1, color="red", alpha=1.0, label='Z')
             if t > n_tail_points:
                 tail_s = t-n_tail_points
                 t_s_half = t - int(n_tail_points / 2)
@@ -155,7 +165,7 @@ class EmbeddingVisualizer:
                     feqbin_factor = eqVis.s_mag_reduced[fbin, tail_s:t] * opening_window * self.config.feqbin_offset_intensity
                     mean_feqbin_intensity = eqVis.s_mag_reduced[fbin, t_s_half:t].mean()
                     size = 2 + mean_feqbin_intensity * self.config.feqbin_linewidth_intensity
-                    alpha = 0.5 + 0.5 * mean_feqbin_intensity
+                    alpha = 0.35 + 0.65 * mean_feqbin_intensity
                     # adjusted_line = [embedded[tail_s:t, 0] - feqbin_factor * math.cos(angle), embedded[tail_s:t, 1] + feqbin_factor * math.cos(angle), embedded[tail_s:t, 2] + feqbin_factor * math.sin(angle)]
                     adjusted_line = [embedded_s[0][tail_s:t] - feqbin_factor * math.cos(angle), embedded_s[1][tail_s:t] + feqbin_factor * math.cos(angle), embedded_s[2][tail_s:t] + feqbin_factor * math.sin(angle)]
                     # line_smoothed = spine_interpolate(adjusted_line)
@@ -165,10 +175,10 @@ class EmbeddingVisualizer:
 
             ax.view_init(phi, dtheta * t)  # view_init(elev=None, azim=None)
             # ax.axis('off')  # for saving transparent gifs
-            ax.dist = 9
+            ax.dist = 8.4
             plt.tight_layout(pad=0.0, w_pad=0.0, h_pad=0.0)
             plt.draw()
             return mplfig_to_npimage(fig)
 
-        movieWriter = MovieWriter(frame_fnc, self.config.movie_out_location, f"{self.config.track_features_location.name}_sm{smooth_factor}p{pooling_kernel_size}.mp4", n_frames, float(self.tf.time_resolution), self.config.track_audio_location)
+        movieWriter = MovieWriter(frame_fnc, self.config.movie_out_location, f"aug_{self.config.track_features_location.name}_sm{smooth_factor}p{pooling_kernel_size}.mp4", n_frames, float(self.tf.time_resolution), self.config.track_audio_location)
         movieWriter.write_video_file()
