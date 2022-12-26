@@ -5,9 +5,10 @@ from ..datastructures.trackfeatures import TrackFeatures
 
 class DataProvider:
 
-    def __init__(self, tf: TrackFeatures, batch_size: int, prediction_length: int) -> None:
+    def __init__(self, tf: TrackFeatures, batch_size: int, prediction_length: int, batch_size_seq : int = 8) -> None:
         self.tf = tf
         self.bs = batch_size
+        self.bs_seq = batch_size_seq
         self.l = prediction_length
         self._generate_idxs()
         self.prepare_iter()
@@ -44,16 +45,21 @@ class DataProvider:
         return batch_tensor
 
     def get_next_prediction_seq(self) -> torch.Tensor:
+        """
+        returns l-long sequences of the track data
+
+        result shape (bs_seq,l,latent)
+        """
         
         batch_tensors = []
-        for i in range(8):
+        for i in range(self.bs_seq):
             if len(self.prediction_idxes) < 1:
                 return None
 
             current_idx = self.prediction_idxes.pop()
 
             if current_idx < self.l or current_idx - self.l + self.tf.frame_width > self.S_mag_norm.shape[1]:
-                return None #return none if l windows are out of img bounds
+                continue # skip current loop if l windows are out of img bounds
 
             sequence_tensors = []
             for i in range(current_idx - self.l, current_idx):
