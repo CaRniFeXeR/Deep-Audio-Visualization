@@ -1,0 +1,22 @@
+{
+    "type_name": "src.datastructures.visualizationconfig.VisualizationConfig",
+    "modelconfig": {
+        "decoderconfig": {
+            "latent_dim": 3
+        },
+        "encoderconfig": {},
+        "seqpredictorconfig": { "n_layers": 1, "dropout": 0.4},
+        "enable_prediction_head": true
+    },
+    "modelstorageconfig": {
+        "file_path" : "./saved_models/Tango Del Fuego_2.0s/29_08_2022 14_55.pt",
+        "load_stats_from_file": true,
+        "gpu_name": "cuda"
+    },
+    "track_features_location": "./cached_track_data/Tango Del Fuego.wav_2.0s",
+    "track_audio_location": "./tracks/Tango Del Fuego.wav",
+    "movie_out_location" : "./movie_out/TangoDelFuego",
+    "feqbin_offset_intensity" : 2,
+    "feqbin_linewidth_intensity" : 1,
+    "dark_mode" : false
+}   

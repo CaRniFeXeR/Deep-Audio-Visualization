@@ -1,0 +1,38 @@
+{
+    "type_name": "src.datastructures.trainconfig.TrainConfig",
+    "modelconfig": {
+        "encoderconfig": {
+            "latent_dim": 3
+        },
+        "decoderconfig": {},
+        "seqpredictorconfig": {
+            "n_layers": 1,
+            "dropout": 0.6  
+        },
+        "enable_prediction_head": true
+    },
+    "trainparams": {
+        "n_epochs": 30,
+        "learning_rate": 0.001,
+        "batch_size": 64,
+        "seq_prediction_start_epoch": 2,
+        "rec_loss": "bce",
+        "seq_loss": "cosine",
+        "seq_loss_weight": 0.01
+    },
+    "modelstorageconfig": {
+        "file_path": "./saved_models/PJ_lazygen_0.5s",
+        "load_stats_from_file": false,
+        "gpu_name": "cuda"
+    },
+    "wandbconfig": {
+        "entity": "floko",
+        "prj_name": "deep-music-vis",
+        "tags": [
+            "song lazygen",
+            "0.5s"
+        ],
+        "enabled": true
+    },
+    "track_features_location": "./cached_track_data/PJ_lazygen.wav_0.5s"
+}

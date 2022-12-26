@@ -1,0 +1,21 @@
+{
+    "type_name": "src.datastructures.visualizationconfig.VisualizationConfig",
+    "modelconfig": {
+        "decoderconfig": {
+            "latent_dim": 3
+        },
+        "encoderconfig": {},
+        "seqpredictorconfig": { "n_layers": 1, "dropout": 0.5},
+        "enable_prediction_head": true
+    },
+    "modelstorageconfig": {
+        "file_path" : "./saved_models/PJ_lazygen_0.5s/02_09_2022 13_57.pt",
+        "load_stats_from_file": true,
+        "gpu_name": "cuda"
+    },
+    "track_features_location": "./cached_track_data/PJ_lazygen.wav_0.5s",
+    "track_audio_location": "./tracks/PJ_lazygen.wav",
+    "movie_out_location" : "./movie_out/paulj",
+    "feqbin_offset_intensity" : 80,
+    "feqbin_linewidth_intensity" : 8
+}

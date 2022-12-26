@@ -1,0 +1,20 @@
+{
+    "type_name": "src.datastructures.visualizationconfig.VisualizationConfig",
+    "modelconfig": {
+        "decoderconfig": {
+            "latent_dim": 3
+        },
+        "encoderconfig": {},
+        "seqpredictorconfig": { "n_layers": 1, "dropout": 0.5},
+        "enable_prediction_head": true
+    },
+    "modelstorageconfig": {
+        "file_path" : "./saved_models/bust_tut mir leid dass ichs schon kenn.wav_4.0s/21_08_2022 15_48.pt",
+        "load_stats_from_file": true,
+        "gpu_name": "cuda"
+    },
+    "track_features_location": "./cached_track_data/bust_tut mir leid dass ichs schon kenn.wav_4.0s",
+    "track_audio_location": "./tracks/bust_tut_mir_leid/bust_tut mir leid dass ichs schon kenn.wav",
+    "movie_out_location" : "./movie_out/bust",
+    "feqbin_offset_intensity": 25
+}

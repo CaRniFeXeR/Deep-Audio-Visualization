@@ -1,0 +1,20 @@
+{
+    "type_name": "src.datastructures.visualizationconfig.VisualizationConfig",
+    "modelconfig": {
+        "decoderconfig": {
+            "latent_dim": 3
+        },
+        "encoderconfig": {},
+        "seqpredictorconfig": { "n_layers": 1, "dropout": 0.5},
+        "enable_prediction_head": true
+    },
+    "modelstorageconfig": {
+        "file_path" : "./saved_models/Pauls Jets - 22703.wav_4.0s/31_08_2022 22_25.pt",
+        "load_stats_from_file": true,
+        "gpu_name": "cuda"
+    },
+    "track_features_location": "./cached_track_data/Pauls Jets - 22703.wav_4.0s",
+    "track_audio_location": "./tracks/Pauls Jets - 22703.wav",
+    "movie_out_location" : "./movie_out/paulj",
+    "feqbin_offset_intensity": 50
+}
