@@ -106,7 +106,7 @@ class EmbeddingVisualizer:
         phi = 35  # elevation angle
         n_frames = int(len(embedded))  # - n_tail_points
         line_interval = 500
-        n_frames = 3500
+        n_frames = 4000
         smooth_factor = self.config.embed_seq_smooth_window_size
         pooling_kernel_size = self.config.pooling_kernel_size
         embedded = smooth_sequence(embedded, smooth_factor)
@@ -180,5 +180,5 @@ class EmbeddingVisualizer:
             plt.draw()
             return mplfig_to_npimage(fig)
 
-        movieWriter = MovieWriter(frame_fnc, self.config.movie_out_location, f"aug_{self.config.track_features_location.name}_sm{smooth_factor}p{pooling_kernel_size}.mp4", n_frames, float(self.tf.time_resolution), self.config.track_audio_location)
+        movieWriter = MovieWriter(frame_fnc, self.config.movie_out_location, f"{self.config.track_features_location.name}_sm{smooth_factor}p{pooling_kernel_size}.mp4", n_frames, float(self.tf.time_resolution), self.config.track_audio_location)
         movieWriter.write_video_file()
