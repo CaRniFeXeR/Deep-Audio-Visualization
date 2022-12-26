@@ -35,7 +35,7 @@ class FeatureExtractor:
         N_overlap = np.ceil(self.config.window_size*self.config.percent_overlap)
 
         window = signal.windows.tukey(self.config.window_size, alpha=0.4)
-        F, T, S_mag_org = signal.spectrogram(track_data, sample_rate, scaling="spectrum", mode="magnitude", window=window, noverlap=N_overlap)
+        F, T, S_mag = signal.spectrogram(track_data, sample_rate, scaling="spectrum", mode="magnitude", window=window, noverlap=N_overlap)
 
         if self.config.use_mel_spec:
             # S_mag = convert_spectogram_to_mel(F, len(T), S_mag)

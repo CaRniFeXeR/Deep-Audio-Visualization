@@ -104,9 +104,11 @@ class EmbeddingVisualizer:
             fig.set_facecolor("black")
         dtheta = 0.13/2.1  # 0.02  #rotation rate deg
         phi = 35  # elevation angle
-        n_frames = int(len(embedded))  # - n_tail_points
+        n_max_frames = int(len(embedded))  # - n_tail_points
+        n_frames = self.config.n_frames
+        assert n_frames <= n_max_frames
+        
         line_interval = 500
-        n_frames = 4000
         smooth_factor = self.config.embed_seq_smooth_window_size
         pooling_kernel_size = self.config.pooling_kernel_size
         embedded = smooth_sequence(embedded, smooth_factor)

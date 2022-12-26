@@ -25,20 +25,21 @@ class Trainer:
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.config.trainparams.learning_rate)
         self.storageHandler = ModelFileHandler(self.config.modelstorageconfig)
         self.logger = WandbLogger(self.config.wandbconfig, {**self.config.trainparams.__dict__})
-        self.visualizer = EmbeddingVisualizer(VisualizationConfig(self.config.modelconfig, self.config.modelstorageconfig, self.config.track_features_location, None), self.model)
-        
+        self.visualizer = EmbeddingVisualizer(VisualizationConfig(self.config.modelconfig, self.config.modelstorageconfig, self.config.track_features_location, None, None, 1000), self.model)
+
         if self.config.trainparams.rec_loss == "bce":
             self.rec_loss_fn = torch.nn.BCEWithLogitsLoss()
         elif self.config.trainparams.rec_loss == "mse":
             self.rec_loss_fn = torch.nn.MSELoss()
-        
+
         if self.config.trainparams.seq_loss == "mse":
-            self.seq_loss_fn =  torch.nn.MSELoss()
+            self.seq_loss_fn = torch.nn.MSELoss()
         elif self.config.trainparams.seq_loss == "cosine":
             cosineloss = torch.nn.CosineEmbeddingLoss()
-            one = torch.ones(1).to(device = "cuda")
-            def loss_fn(x : torch.Tensor,y : torch.Tensor) -> torch.Tensor:
-                return cosineloss(x,y, one)
+            one = torch.ones(1).to(device="cuda")
+
+            def loss_fn(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+                return cosineloss(x, y, one)
 
             self.seq_loss_fn = loss_fn
 
@@ -57,18 +58,32 @@ class Trainer:
                 rec_pred = self.model(input_tensor)
                 rec_loss = self.rec_loss_fn(rec_pred, input_tensor)
 
-                input_seq = dataprovider.get_next_prediction_seq()
-                if input_seq is not None and self.config.modelconfig.enable_prediction_head and e > self.config.trainparams.seq_prediction_start_epoch:
-                    seq_shape = input_seq.shape
-                    embedded_seq = self.model.embed_track_window(input_seq.view((seq_shape[0]*seq_shape[1], seq_shape[2], seq_shape[3])))
-                    embedded_seq = embedded_seq.view((seq_shape[0], seq_shape[1], self.config.modelconfig.seqpredictorconfig.latent_dim))
-                    seq_pred = self.model.seq_prediction_forward(embedded_seq[:, :-1])
-                    seq_gt = embedded_seq[:, -1]
-                    seq_loss = self.seq_loss_fn(seq_pred, seq_gt)
-                    self.logger.log({"seq_loss": seq_loss.detach().cpu().numpy()}, commit=False)
-                    loss = rec_loss + self.config.trainparams.seq_loss_weight * seq_loss
-                else:
-                    loss = rec_loss
+                loss = rec_loss
+
+                if self.config.modelconfig.enable_prediction_head and e >= self.config.trainparams.seq_prediction_start_epoch:
+                    input_seq = dataprovider.get_next_prediction_seq()
+                    if input_seq is not None:
+                        seq_shape = input_seq.shape
+                        embedded_seq = self.model.embed_track_window(input_seq.view((seq_shape[0]*seq_shape[1], seq_shape[2], seq_shape[3])))
+                        embedded_seq = embedded_seq.view((seq_shape[0], seq_shape[1], self.config.modelconfig.seqpredictorconfig.latent_dim))
+                        seq_pred = self.model.seq_prediction_forward(embedded_seq[:, :-1]) #predict the l-th element given l-1 elements
+                        seq_gt = embedded_seq[:, -1]
+                        seq_loss = self.seq_loss_fn(seq_pred, seq_gt)
+                        seq_loss = self.config.trainparams.seq_loss_weight * seq_loss
+                        self.logger.log({"seq_loss": seq_loss.detach().cpu().numpy()}, commit=False)
+                        loss +=  seq_loss
+
+                        if e >= self.config.trainparams.dist_loss_start_epoch:
+
+                            input_seq_diffs = torch.abs(input_seq - input_seq.roll(shifts = 1, dims = 1))[:,1:-1]
+                            input_seq_diffs = input_seq_diffs.sum(dim= (-1,-2))
+
+                            emb_seq_diffs = torch.abs(embedded_seq - embedded_seq.roll(shifts = 1, dims = 1))[:,1:-1]
+                            emb_seq_diffs = emb_seq_diffs.sum(dim= -1)
+                            distance_loss = torch.sum((emb_seq_diffs - input_seq_diffs) **2)
+                            distance_loss = self.config.trainparams.dist_loss_weight * distance_loss
+                            self.logger.log({"distance_loss": distance_loss.detach().cpu().numpy()}, commit=False)
+                            loss += distance_loss
 
                 loss.backward()
                 self.optimizer.step()
