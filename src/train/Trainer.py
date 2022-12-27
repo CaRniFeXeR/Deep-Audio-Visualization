@@ -2,6 +2,8 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 import torch
 
+from .Loss import half_window_distance_loss, seq_distance_loss
+
 from .dataprovider import DataProvider
 from ..datastructures.visualizationconfig import VisualizationConfig
 from ..visualization.embeddingvisualizer import EmbeddingVisualizer
@@ -52,11 +54,16 @@ class Trainer:
 
         dataprovider = DataProvider(self.tf, self.config.trainparams.batch_size, self.config.trainparams.prediction_seq_length)
 
+        best_epoch_loss = 1000
+
         for e in range(self.config.trainparams.n_epochs):
+            epoch_loss = 0
             print(f"training in epoch '{e}'")
             for input_tensor in dataprovider:
                 rec_pred = self.model(input_tensor)
                 rec_loss = self.rec_loss_fn(rec_pred, input_tensor)
+                rec_loss_np = rec_loss.detach().cpu().numpy()
+                self.logger.log({"rec_loss": rec_loss_np}, commit=False)
 
                 loss = rec_loss
 
@@ -66,36 +73,35 @@ class Trainer:
                         seq_shape = input_seq.shape
                         embedded_seq = self.model.embed_track_window(input_seq.view((seq_shape[0]*seq_shape[1], seq_shape[2], seq_shape[3])))
                         embedded_seq = embedded_seq.view((seq_shape[0], seq_shape[1], self.config.modelconfig.seqpredictorconfig.latent_dim))
-                        seq_pred = self.model.seq_prediction_forward(embedded_seq[:, :-1]) #predict the l-th element given l-1 elements
-                        seq_gt = embedded_seq[:, -1]
+                        seq_pred = self.model.seq_prediction_forward(embedded_seq[:, :-self.config.trainparams.n_elements_pred])  # predict the l-th element given l-1 elements
+                        seq_gt = embedded_seq[:, -self.config.trainparams.n_elements_pred]
                         seq_loss = self.seq_loss_fn(seq_pred, seq_gt)
                         seq_loss = self.config.trainparams.seq_loss_weight * seq_loss
                         self.logger.log({"seq_loss": seq_loss.detach().cpu().numpy()}, commit=False)
-                        loss +=  seq_loss
+                        loss += seq_loss
 
                         if e >= self.config.trainparams.dist_loss_start_epoch:
-
-                            input_seq_diffs = torch.abs(input_seq - input_seq.roll(shifts = 1, dims = 1))[:,1:-1]
-                            input_seq_diffs = input_seq_diffs.sum(dim= (-1,-2))
-
-                            emb_seq_diffs = torch.abs(embedded_seq - embedded_seq.roll(shifts = 1, dims = 1))[:,1:-1]
-                            emb_seq_diffs = emb_seq_diffs.sum(dim= -1)
-                            distance_loss = torch.sum((emb_seq_diffs - input_seq_diffs) **2)
+                            distance_loss = half_window_distance_loss(input_seq, embedded_seq)
                             distance_loss = self.config.trainparams.dist_loss_weight * distance_loss
                             self.logger.log({"distance_loss": distance_loss.detach().cpu().numpy()}, commit=False)
                             loss += distance_loss
 
+                overall_loss_np = loss.detach().cpu().numpy()
+                epoch_loss += overall_loss_np
+                self.logger.log({"overall_loss": overall_loss_np}, commit=False)
                 loss.backward()
                 self.optimizer.step()
-                rec_loss_np = rec_loss.detach().cpu().numpy()
-                print(f" rec_loss {rec_loss_np}")
-                self.logger.log({"rec_loss": rec_loss_np}, commit=False)
+                # print(f" rec_loss {rec_loss_np}")
 
-            print(f"rec_pred mean {rec_pred.detach().cpu().numpy().mean()}")
+            # print(f"rec_pred mean {rec_pred.detach().cpu().numpy().mean()}")
             trajectory_plot = self.visualizer.plot_whole_track_trajectory()
             self.logger.log_figure_as_img("trajectory", trajectory_plot)
             plt.close("all")
 
+            if e > self.config.trainparams.n_epochs / 4 and epoch_loss < best_epoch_loss:
+                print(f"new best loss reached saving model.. epoch_loss {epoch_loss:.4f} best_epoch_loss {best_epoch_loss:.4f}")
+                best_epoch_loss = epoch_loss
+                self.storageHandler.save_model_state_to_file(self.model)
+
         print("\n\nfinished training ... \n\n")
-        self.storageHandler.save_model_state_to_file(self.model)
         self.logger.log_figure_as_img("trajectory_finished", trajectory_plot)

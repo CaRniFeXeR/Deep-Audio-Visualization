@@ -6,6 +6,7 @@ class Trainparams:
     learning_rate : float = 0.001
     batch_size : int = 1
     prediction_seq_length : int = 45
+    n_elements_pred : int = 1
     seq_prediction_start_epoch : int = 0
     dist_loss_start_epoch : int = 0
     rec_loss : str = "bce"
