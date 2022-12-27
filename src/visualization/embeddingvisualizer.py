@@ -90,7 +90,7 @@ class EmbeddingVisualizer:
         print(f"time spanning input tensor: {(l-1)*self.tf.dt/self.tf.time_resolution} (s)")  # should equal T_start
         print(f"Total frames to be rendered: {samples}")
 
-        n_tail_points = 30
+        n_tail_points = 50
         window_start = [0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.55, 0.6, 0.7, 0.8, 0.9]
         opening_window = window_start + (n_tail_points - len(window_start)) * [1.0]
         print(f"T_start including tail points {T_start+(n_tail_points-1)/self.tf.time_resolution} (s), T_end {T_end} (s)")
@@ -114,6 +114,7 @@ class EmbeddingVisualizer:
         embedded = smooth_sequence(embedded, smooth_factor)
         eqVis = EqualizerVisHandler(embedded, smooth_sequence(self.tf.get_normalized_magnitudes(), 2), pooling_kernel_size=pooling_kernel_size)
         embedded_s = spine_interpolate([embedded[20:-40,0], embedded[20:-40, 1], embedded[20:-40, 2]])
+        
         n_bins = eqVis.s_mag_reduced.shape[0]
         angle_step = 360 / n_bins / 180 * np.pi
         print("n_bins", n_bins)
