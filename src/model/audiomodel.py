@@ -1,3 +1,4 @@
+from typing import Tuple
 import torch
 from src.model.decoder import Decoder
 
@@ -24,10 +25,10 @@ class AudioModel(torch.nn.Module):
     def embed_track_window(self, x : torch.Tensor) -> torch.Tensor:
         return self.encoder(x)    
     
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor,torch.Tensor]:
         encoded = self.embed_track_window(x)
         decoded = self.decoder(encoded)
-        return decoded
+        return decoded, encoded
 
     def seq_prediction_forward(self, x : torch.Tensor) -> torch.Tensor:
         return self.sequence_predictor(x)

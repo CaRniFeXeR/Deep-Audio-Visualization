@@ -11,6 +11,7 @@ class TrackFeatures:
     frame_height : int
     frame_width : int
     time_resolution : float
+    centroids : np.ndarray = None
 
     def get_normalized_magnitudes(self) -> np.ndarray:
         mag_min = np.min(self.S_mag)

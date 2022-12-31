@@ -20,6 +20,12 @@ class FeatureExtractor:
     def __init__(self, config: FeatureExtractionConfig) -> None:
         self.config = config
 
+    def generate_centroid(self, file_path : str) -> np.ndarray:
+        samples, sample_rate = librosa.load(file_path)
+        centroids = librosa.feature.spectral_centroid(y= samples, sr=sample_rate)[0]
+
+        return centroids
+
     def extract_features(self, wavfile_path: Path):
         sample_rate, track_data = wavfile.read(wavfile_path)
 
@@ -44,6 +50,9 @@ class FeatureExtractor:
             # spectrogram = np.abs(mel_signal)
             samples, sample_rate = librosa.load(wavfile_path)
             S_mag = librosa.feature.melspectrogram(samples, sr = sample_rate, win_length =self.config.window_size, window= window)
+
+        if self.config.use_db_scale:
+            S_mag = librosa.power_to_db(S_mag, ref=np.max)
 
         time_resolution = np.floor(len(T)/duration_s)  # Spectrogram time bins per sec
         seconds_per_window = self.config.window_size/sample_rate
@@ -86,12 +95,17 @@ class FeatureExtractor:
         print(f"spectrogram frame shape (time bins, freq bins): {frame_size}")
         # assert frame_height == 94, "Input image dimensions will cause shape error in decoder"
         mel_indicator = "_mel" if self.config.use_mel_spec else ""
-        outfolder = self.config.outputlocation / Path(wavfile_path.name + f"_{self.config.secs_per_spectrum}s{mel_indicator}")
+        db_indicator = "_db" if self.config.use_db_scale else ""
+        outfolder = self.config.outputlocation / Path(wavfile_path.name + f"_{self.config.secs_per_spectrum}s{mel_indicator}{db_indicator}")
         outfolder.mkdir(exist_ok=True, parents=True)
         track_features = TrackFeatures(F=F, T=T, S_mag=S_mag_save, dt=dt, frame_width=frame_width, frame_height=frame_height, time_resolution=time_resolution)
+
+        if self.config.calculate_centroids:
+            track_features.centroids = self.generate_centroid(wavfile_path)
+
         TrackFeaturesFileHandler().save_track_features(outfolder / Path('vars.npz'), track_features)
 
-        # self._plot_spectogram(T, S_mag_save, F, frame_width, frame_height, outfolder)
+        self._plot_spectogram(T, S_mag_save, F, frame_width, frame_height, outfolder)
         # self._plot_spectogram(T, S_mag_org, F, frame_width, frame_height, outfolder)
         
         # samples, sample_rate = librosa.load(wavfile_path)

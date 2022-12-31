@@ -41,3 +41,8 @@ def half_window_distance_loss(input_seq: torch.Tensor, embedded_seq: torch.Tenso
     distance_loss = torch.sum((emb_seq_diffs - input_seq_diffs) ** 2)
 
     return distance_loss
+
+
+def spectral_centroid_loss(centroids : torch.Tensor, embedded_points : torch.Tensor) -> torch.Tensor:
+
+    return torch.mean(torch.pow(embedded_points[:,-1] - (centroids / 1000), 2))

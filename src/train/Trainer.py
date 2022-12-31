@@ -2,7 +2,7 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 import torch
 
-from .Loss import half_window_distance_loss, seq_distance_loss
+from .Loss import half_window_distance_loss, seq_distance_loss, spectral_centroid_loss
 
 from .dataprovider import DataProvider
 from ..datastructures.visualizationconfig import VisualizationConfig
@@ -45,6 +45,11 @@ class Trainer:
 
             self.seq_loss_fn = loss_fn
 
+    def _log_loss(self, key: str, loss: torch.Tensor):
+
+        loss_np = loss.detach().cpu().numpy()
+        self.logger.log({key: loss_np}, commit=False)
+
     def train(self):
         self.logger.watch_model(self.model)
         self.model.to(device="cuda")
@@ -59,13 +64,16 @@ class Trainer:
         for e in range(self.config.trainparams.n_epochs):
             epoch_loss = 0
             print(f"training in epoch '{e}'")
-            for input_tensor in dataprovider:
-                rec_pred = self.model(input_tensor)
+            for input_tensor, centroid_tensor in dataprovider:
+                rec_pred, embedded_pred = self.model(input_tensor)
                 rec_loss = self.rec_loss_fn(rec_pred, input_tensor)
-                rec_loss_np = rec_loss.detach().cpu().numpy()
-                self.logger.log({"rec_loss": rec_loss_np}, commit=False)
+                self._log_loss("rec_loss", rec_loss)
 
                 loss = rec_loss
+
+                centroid_loss = spectral_centroid_loss(centroid_tensor, embedded_pred) * 0.05
+                loss += centroid_loss
+                self._log_loss("centroid_loss", centroid_loss)
 
                 if self.config.modelconfig.enable_prediction_head and e >= self.config.trainparams.seq_prediction_start_epoch:
                     input_seq = dataprovider.get_next_prediction_seq()
@@ -77,13 +85,13 @@ class Trainer:
                         seq_gt = embedded_seq[:, -self.config.trainparams.n_elements_pred]
                         seq_loss = self.seq_loss_fn(seq_pred, seq_gt)
                         seq_loss = self.config.trainparams.seq_loss_weight * seq_loss
-                        self.logger.log({"seq_loss": seq_loss.detach().cpu().numpy()}, commit=False)
+                        self._log_loss("seq_loss", seq_loss)
                         loss += seq_loss
 
                         if e >= self.config.trainparams.dist_loss_start_epoch:
                             distance_loss = half_window_distance_loss(input_seq, embedded_seq)
                             distance_loss = self.config.trainparams.dist_loss_weight * distance_loss
-                            self.logger.log({"distance_loss": distance_loss.detach().cpu().numpy()}, commit=False)
+                            self._log_loss("distance_loss", distance_loss)
                             loss += distance_loss
 
                 overall_loss_np = loss.detach().cpu().numpy()
