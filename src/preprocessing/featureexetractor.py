@@ -1,14 +1,13 @@
 from pathlib import Path
 
 import numpy as np
+from src.preprocessing.pitchshifter import PitchShifter
 from src.datastructures.featureextractionconfig import FeatureExtractionConfig
-from scipy.io import wavfile
 from scipy import signal
 import matplotlib.pyplot as plt
 
 from src.datastructures.trackfeatures import TrackFeatures
 from src.io.trackfeaturesfilehandler import TrackFeaturesFileHandler
-from src.utils.melhandler import convert_spectogram_to_mel
 import librosa
 import librosa.display
 
@@ -26,8 +25,18 @@ class FeatureExtractor:
 
         return centroids
 
+    def generate_pitchshifted_features(self, wavefile_path : Path):
+        assert self.config.pitchshifting is not None
+
+        pitchsshifter = PitchShifter(self.config.pitchshifting)
+        pitch_shifted_files = pitchsshifter.range_pitch(wavefile_path)
+        for pitch_shifted_file in pitch_shifted_files:
+            self.extract_features(pitch_shifted_file)
+
+
+
     def extract_features(self, wavfile_path: Path):
-        sample_rate, track_data = wavfile.read(wavfile_path)
+        track_data, sample_rate = librosa.load(str(wavfile_path))
 
         assert sample_rate == 44100, "wave file should be rendered at samplerate=44100 Hz"
         assert len(track_data.shape) == 1 or (len(track_data.shape) == 2 and track_data.shape[1] == 2), "wave file is not mono or stero sound"
@@ -105,22 +114,7 @@ class FeatureExtractor:
 
         TrackFeaturesFileHandler().save_track_features(outfolder / Path('vars.npz'), track_features)
 
-        self._plot_spectogram(T, S_mag_save, F, frame_width, frame_height, outfolder)
-        # self._plot_spectogram(T, S_mag_org, F, frame_width, frame_height, outfolder)
-        
-        # samples, sample_rate = librosa.load(wavfile_path)
-        # s_librosa = librosa.feature.melspectrogram(samples, sr = sample_rate, win_length =self.config.window_size, window= window)
-        # S_DB = librosa.power_to_db(s_librosa, ref=np.max)
-        # librosa.display.specshow(S_DB[:,:frame_width*26 * 2], sr=sample_rate, hop_length=self.config.window_size, x_axis='time', y_axis='mel')
-        # plt.colorbar(format='%+2.0f dB')
-        # plt.show()
-
-        # S_DB_cloned = librosa.power_to_db(S_mag_save, ref=np.max)
-        # librosa.display.specshow(S_DB_cloned[:,:frame_width*26 * 2], sr=sample_rate, hop_length=self.config.window_size, x_axis='time', y_axis='mel')
-        # plt.colorbar(format='%+2.0f dB')
-
-        # plt.show()
-
+     
     def _plot_spectogram(self, T : np.ndarray, S : np.ndarray, F : np.ndarray, frame_width: int, frame_height: int, outfolder: Path):
         c = 26 * 5
         plt.figure(figsize=(20, 7))

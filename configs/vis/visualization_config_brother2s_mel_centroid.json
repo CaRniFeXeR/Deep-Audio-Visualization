@@ -14,8 +14,8 @@
         "gpu_name": "cuda"
     },
     "track_features_location": "./cached_track_data/Kodaline-Brother.wav_2.0s_mel",
-    "track_audio_location": "./tracks/Kodaline-Brother.wav",
-    "movie_out_location" : "./movie_out/Kodaline-Brother_mel_1_1_mel",
+    "track_audio_location": "./data/tracks/Kodaline-Brother.wav",
+    "movie_out_location" : "./data/movie_out/Kodaline-Brother_mel_1_1_mel",
     "feqbin_offset_intensity" : 1,
     "feqbin_linewidth_intensity" : 1,
     "n_frames" : 2000

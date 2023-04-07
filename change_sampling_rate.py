@@ -4,7 +4,7 @@ from scipy import interpolate
 
 NEW_SAMPLERATE = 44100
 
-old_samplerate, old_audio = wavfile.read("./tracks/Kodaline-Brother.wav")
+old_samplerate, old_audio = wavfile.read("./data/tracks/InTheEnd_remixed.wav")
 
 if old_samplerate != NEW_SAMPLERATE:
     duration = old_audio.shape[0] / old_samplerate

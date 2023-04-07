@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from .pitchshiftconfig import PitchShiftConfig
+
 
 @dataclass
 class FeatureExtractionConfig:
@@ -11,3 +13,4 @@ class FeatureExtractionConfig:
     use_mel_spec : bool = False
     use_db_scale : bool = False
     calculate_centroids : bool = True
+    pitchshifting : PitchShiftConfig = None

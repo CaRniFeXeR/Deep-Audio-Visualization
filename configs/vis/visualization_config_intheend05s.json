@@ -14,8 +14,8 @@
         "gpu_name": "cuda"
     },
     "track_features_location": "./cached_track_data/InTheEnd_remixed.wav_0.5s",
-    "track_audio_location": "./tracks/InTheEnd_remixed.wav",
-    "movie_out_location" : "./movie_out/InTheEnd_remixed",
+    "track_audio_location": "./data/tracks/InTheEnd_remixed.wav",
+    "movie_out_location" : "./data/movie_out/InTheEnd_remixed",
     "feqbin_offset_intensity" : 7,
     "feqbin_linewidth_intensity" : 6
 }
