@@ -20,10 +20,11 @@ class PitchShifter:
         outfolder = self.config.outputlocation / wavefile.stem
         outfolder.mkdir(exist_ok=True, parents=True)
         for i in np.arange(self.config.min_pitch, self.config.max_pitch, self.config.step_size):
-            y_shifted_rubberband = self.shift_pitch(y, sr, n_steps=i)
-            output_file = Path(wavefile.stem + f'_ps{str(i).replace(".","_")}.wav')
+            n_steps = round(i,1)
+            y_shifted_rubberband = self.shift_pitch(y, sr, n_steps=n_steps)
+            output_file = Path(wavefile.stem + f'_ps{n_steps:.2f}.wav')
             sf.write(str(outfolder /output_file), y_shifted_rubberband, samplerate=sr)
-            print("generated: " + str(output_file)
+            print("generated: " + str(output_file))
             result.append(output_file)
 
         return result
