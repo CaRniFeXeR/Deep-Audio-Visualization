@@ -12,15 +12,15 @@
         "enable_prediction_head": true
     },
     "trainparams": {
-        "n_epochs": 26,
+        "n_epochs": 50,
         "learning_rate": 0.002,
         "batch_size": 64,
         "seq_prediction_start_epoch": 1,
         "dist_loss_start_epoch" : 2,
         "rec_loss": "bce",
-        "seq_loss": "mse",
-        "seq_loss_weight": 0.03,
-        "dist_loss_weight" :0.0001
+        "seq_loss": "cosine",
+        "seq_loss_weight": 0.1,
+        "dist_loss_weight" :0.001
     },
     "modelstorageconfig": {
         "file_path": "./saved_models/Kodaline-Brother_2.0s_mel",

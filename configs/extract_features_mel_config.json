@@ -1,6 +1,7 @@
  {
     "type_name": "src.datastructures.featureextractionconfig.FeatureExtractionConfig",
     "outputlocation" : "./cached_track_data",
-    "secs_per_spectrum" : 4.0,
-    "use_mel_spec" : true
+    "secs_per_spectrum" : 2.0,
+    "use_mel_spec" : true,
+    "use_db_scale" : false
  } 

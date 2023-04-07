@@ -9,14 +9,14 @@
         "enable_prediction_head": true
     },
     "modelstorageconfig": {
-        "file_path" : "./saved_models/Kodaline-Brother_2.0s_mel/26_12_2022 23_15.pt",
+        "file_path" : "./saved_models/Kodaline-Brother_2.0s_mel/27_12_2022 22_58.pt",
         "load_stats_from_file": true,
         "gpu_name": "cuda"
     },
     "track_features_location": "./cached_track_data/Kodaline-Brother.wav_2.0s_mel",
     "track_audio_location": "./tracks/Kodaline-Brother.wav",
-    "movie_out_location" : "./movie_out/Kodaline-Brother_mel",
-    "feqbin_offset_intensity" : 55,
-    "feqbin_linewidth_intensity" : 8,
-    "n_frames" : 1000
+    "movie_out_location" : "./movie_out/Kodaline-Brother_mel_27_12_long_dis",
+    "feqbin_offset_intensity" : 25,
+    "feqbin_linewidth_intensity" : 30,
+    "n_frames" : 2000
 }
