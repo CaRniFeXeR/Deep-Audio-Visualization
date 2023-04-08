@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Dict
 
 import numpy as np
 
@@ -13,3 +14,14 @@ class TrackFeaturesFileHandler:
     def load_track_features(self, file_location: Path) -> TrackFeatures:
         loaded_dict = np.load(file_location)
         return TrackFeatures(**loaded_dict)
+
+    def load_pitch_shifted_track_features(self, folder: Path) -> Dict[str,TrackFeatures]:
+        """
+        Loads all track features from a folder that have been pitch shifted.
+        """
+        result_dict = {}
+        for file in folder.iterdir():
+            if file.suffix == ".npz":
+                result_dict[file.stem.split("-")[-1]] = self.load_track_features(file)
+        
+        return result_dict

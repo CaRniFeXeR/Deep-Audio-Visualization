@@ -5,7 +5,7 @@ from src.preprocessing.pitchshifter import PitchShifter
 from src.datastructures.featureextractionconfig import FeatureExtractionConfig
 from scipy import signal
 import matplotlib.pyplot as plt
-
+from scipy.io import wavfile
 from src.datastructures.trackfeatures import TrackFeatures
 from src.io.trackfeaturesfilehandler import TrackFeaturesFileHandler
 import librosa
@@ -36,7 +36,7 @@ class FeatureExtractor:
 
 
     def extract_features(self, wavfile_path: Path):
-        track_data, sample_rate = librosa.load(str(wavfile_path))
+        sample_rate, track_data = wavfile.read(wavfile_path)
 
         assert sample_rate == 44100, "wave file should be rendered at samplerate=44100 Hz"
         assert len(track_data.shape) == 1 or (len(track_data.shape) == 2 and track_data.shape[1] == 2), "wave file is not mono or stero sound"
@@ -45,7 +45,7 @@ class FeatureExtractor:
             track_data[:, 0] += track_data[:, 1]
             track_data[:, 0] = track_data[:, 0] / 2
 
-        track_data = track_data[:, 0]
+        # track_data = track_data[:, 0]
         duration_s = track_data.shape[0] / sample_rate
         N_overlap = np.ceil(self.config.window_size*self.config.percent_overlap)
 
@@ -57,7 +57,7 @@ class FeatureExtractor:
             # S_mag = convert_spectogram_to_mel(S_mag_org, given_power_spec = False)
             # mel_signal = librosa.feature.melspectrogram(y=track_data, sr=sample_rate, hop_length=N_overlap)
             # spectrogram = np.abs(mel_signal)
-            samples, sample_rate = librosa.load(wavfile_path)
+            samples, sample_rate = librosa.load(wavfile_path, sr=44100)
             S_mag = librosa.feature.melspectrogram(samples, sr = sample_rate, win_length =self.config.window_size, window= window)
 
         if self.config.use_db_scale:
