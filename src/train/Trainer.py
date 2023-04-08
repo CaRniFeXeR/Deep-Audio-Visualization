@@ -18,17 +18,30 @@ class Trainer:
 
     def __init__(self, config: TrainConfig) -> None:
         self.config = config
-        self.tf = TrackFeaturesFileHandler().load_track_features(self.config.track_features_location / Path("vars.npz"))
-        self.config.modelconfig.encoderconfig.features_in_dim = self.tf.frame_height
-        self.config.modelconfig.encoderconfig.frame_width_in = self.tf.frame_width
-        self.config.modelconfig.decoderconfig.output_dim = self.tf.frame_height
-        self.config.modelconfig.decoderconfig.output_length = self.tf.frame_width
-        self.model = AudioModel(self.config.modelconfig)
+        self._init_data()
+        self._init_model()
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.config.trainparams.learning_rate)
         self.storageHandler = ModelFileHandler(self.config.modelstorageconfig)
         self.logger = WandbLogger(self.config.wandbconfig, {**self.config.trainparams.__dict__})
-        self.visualizer = EmbeddingVisualizer(VisualizationConfig(self.config.modelconfig, self.config.modelstorageconfig, self.config.track_features_location, None, None, 1000), self.model)
 
+        self._init_loss()
+        self._init_visualizer()
+
+     
+
+    def _init_data(self) -> None:
+        self.tf = TrackFeaturesFileHandler().load_track_features(self.config.track_features_location / Path("vars.npz"))
+        self.frame_height = self.tf.frame_height
+        self.frame_width = self.tf.frame_width
+
+    def _init_model(self) -> None:
+        self.config.modelconfig.encoderconfig.features_in_dim = self.frame_height
+        self.config.modelconfig.encoderconfig.frame_width_in = self.frame_width
+        self.config.modelconfig.decoderconfig.output_dim = self.frame_height
+        self.config.modelconfig.decoderconfig.output_length = self.frame_width
+        self.model = AudioModel(self.config.modelconfig)
+
+    def _init_loss(self):
         if self.config.trainparams.rec_loss == "bce":
             self.rec_loss_fn = torch.nn.BCEWithLogitsLoss()
         elif self.config.trainparams.rec_loss == "mse":
@@ -44,6 +57,10 @@ class Trainer:
                 return cosineloss(x, y, one)
 
             self.seq_loss_fn = loss_fn
+
+    def _init_visualizer(self):
+        self.visualizer = EmbeddingVisualizer(VisualizationConfig(self.config.modelconfig, self.config.modelstorageconfig, self.config.track_features_location, None, None, 1000), self.model)
+
 
     def _log_loss(self, key: str, loss: torch.Tensor):
 

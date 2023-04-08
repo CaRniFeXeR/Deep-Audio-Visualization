@@ -1,0 +1,33 @@
+{
+    "type_name": "src.datastructures.trainconfig.TrainConfig",
+    "modelconfig": {
+        "encoderconfig": {
+            "latent_dim": 3
+        },
+        "decoderconfig": {},
+        "seqpredictorconfig": {},
+        "enable_prediction_head": false
+    },
+    "trainparams": {
+        "n_epochs": 15,
+        "learning_rate": 0.001,
+        "batch_size": 64,
+        "rec_loss": "mse"
+    },
+    "modelstorageconfig": {
+        "file_path": "./saved_models/Kodaline-Brother_pitch_shift_1.0s",
+        "load_stats_from_file": false,
+        "gpu_name": "cuda"
+    },
+    "wandbconfig": {
+        "entity": "floko",
+        "prj_name": "deep-music-vis",
+        "tags": [
+            "song Kodaline-Brother",
+            "1.0s",
+            "pitch shifting"
+        ],
+        "enabled": true
+    },
+    "track_features_location": "./data/cached_shifted_track_data"
+}
