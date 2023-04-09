@@ -3,6 +3,7 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
+from ..utils.sequenceindexinghandler import cut_offset_start_end, extract_sequence
 from ..utils.interpolationhandler import spine_interpolate
 from ..utils.sequence_smoother import smooth_sequence
 
@@ -54,6 +55,20 @@ class EmbeddingVisualizer:
 
         embeded_track = np.concatenate(embedded_points)
         return embeded_track
+    
+    def plot_track_pitch_over_time(self, percentage_length : 0.2, percentage_offset : 0.1):
+        embedded = self.embed_track()
+        pitch = embedded[:,0]
+        # pitch = cut_offset_start_end(pitch, percentage_offset, percentage_offset)
+        pitch = extract_sequence(pitch, 0, percentage_length)
+        fig = plt.figure(figsize=(40,5))
+        time = np.arange(len(pitch))
+
+        plt.plot(time, pitch)
+
+        return fig
+
+
 
     def plot_whole_track_trajectory(self):
         embedded = self.embed_track()

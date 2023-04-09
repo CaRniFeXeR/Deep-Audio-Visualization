@@ -1,0 +1,22 @@
+{
+    "type_name": "src.datastructures.visualizationconfig.VisualizationConfig",
+    "modelconfig": {
+        "decoderconfig": {
+            "latent_dim": 3
+        },
+        "encoderconfig": {},
+        "seqpredictorconfig": {},
+        "enable_prediction_head": false
+    },
+    "modelstorageconfig": {
+        "file_path" : "./saved_models/Kodaline-Brother_pitch_shift_1.0s/08_04_2023 11_39.pt",
+        "load_stats_from_file": true,
+        "gpu_name": "cuda"
+    },
+    "track_features_location": "./data/cached_shifted_track_data/Kodaline-Brother_ps0.00.wav_1.0s",
+    "track_audio_location": "./data/tracks/Kodaline-Brother.wav",
+    "movie_out_location" : "./data/movie_out/Kodaline-Brother_mel_1_1_mel",
+    "feqbin_offset_intensity" : 1,
+    "feqbin_linewidth_intensity" : 1,
+    "n_frames" : 2000
+}

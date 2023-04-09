@@ -5,6 +5,8 @@ import librosa
 from src.datastructures.pitchshiftconfig import PitchShiftConfig
 import numpy as np
 from scipy.io import wavfile
+
+from utils.sequenceindexinghandler import cut_offset_start_end
 class PitchShifter:
 
     def __init__(self, config: PitchShiftConfig) -> None:
@@ -15,9 +17,8 @@ class PitchShifter:
         Shifts the pitch of a given wavefile in a given range and saves the results in a folder
         """
         y, sr = librosa.load(str(wavefile), sr=44100)
-        l_y = len(y)
         # remove the first and last 10% of the signal to avoid artifacts
-        y = y[int(round(l_y*self.config.percent_offsets[0])):-int(round(l_y*self.config.percent_offsets[1]))]
+        y = cut_offset_start_end(y, self.config.percent_offsets[0], self.config.percent_offsets[1])
 
         result = []
         outfolder = self.config.outputlocation / wavefile.stem

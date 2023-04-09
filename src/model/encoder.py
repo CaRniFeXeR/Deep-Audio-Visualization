@@ -40,6 +40,7 @@ class Encoder(torch.nn.Module):
         layers.append(torch.nn.LeakyReLU())
         layers.append(torch.nn.Flatten())
         layers.append(torch.nn.Linear(int(math.floor(self.config.frame_width_in  * 0.5**n_pooling)) * 128, self.config.latent_dim))
+        layers.append(self.config.final_activation_fn)
 
         self.layers = torch.nn.ModuleList(layers)
 

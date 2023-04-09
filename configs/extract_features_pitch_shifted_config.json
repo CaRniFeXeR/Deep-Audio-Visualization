@@ -2,8 +2,9 @@
     "type_name": "src.datastructures.featureextractionconfig.FeatureExtractionConfig",
     "outputlocation" : "./data/cached_shifted_track_data",
     "secs_per_spectrum" : 1.0,
-    "use_mel_spec" : true,
+    "use_mel_spec" : false,
     "use_db_scale" : false,
+    "calculate_centroids" : false,
     "pitchshifting" : {
         "outputlocation" : "./data/shifted_track_data"
     }
