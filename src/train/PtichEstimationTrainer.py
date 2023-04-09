@@ -9,14 +9,6 @@ from src.train.Loss import absolute_pitch_diff_loss, relative_pitch_diff_loss
 from src.train.pitchdataprovider import PitchDataProvider
 from src.visualization.embeddingvisualizer import EmbeddingVisualizer
 
-class scaled_tanh(torch.nn.Module):
-    def __init__(self, scale: float):
-        super().__init__()
-        self.scale = scale
-
-    def forward(self, x):
-        return torch.tanh(x) * self.scale
-
 
 class PtichEstimationTrainer(Trainer):
 

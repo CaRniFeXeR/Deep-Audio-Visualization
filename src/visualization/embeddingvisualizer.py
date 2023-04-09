@@ -1,7 +1,6 @@
 import math
 from pathlib import Path
 from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
 from ..utils.sequenceindexinghandler import cut_offset_start_end, extract_sequence
 from ..utils.interpolationhandler import spine_interpolate
@@ -17,7 +16,7 @@ gettrace = getattr(sys, 'gettrace', None)
 
 if gettrace is None:
     plt.switch_backend('agg') #switch backend if debugger is not enabled
-plt.switch_backend('agg') #switch backend if debugger is not enabled
+#plt.switch_backend('agg') #switch backend if debugger is not enabled
 
 import torch
 
@@ -56,8 +55,9 @@ class EmbeddingVisualizer:
         embeded_track = np.concatenate(embedded_points)
         return embeded_track
     
-    def plot_track_pitch_over_time(self, percentage_length : 0.2, percentage_offset : 0.1):
-        embedded = self.embed_track()
+    def plot_track_pitch_over_time(self, percentage_length : 0.2, percentage_offset : 0.1, embedded : np.ndarray = None):
+        if embedded is None:
+            embedded = self.embed_track()
         pitch = embedded[:,0]
         # pitch = cut_offset_start_end(pitch, percentage_offset, percentage_offset)
         pitch = extract_sequence(pitch, 0, percentage_length)
@@ -199,4 +199,76 @@ class EmbeddingVisualizer:
             return mplfig_to_npimage(fig)
 
         movieWriter = MovieWriter(frame_fnc, self.config.movie_out_location, f"{self.config.track_features_location.name}_sm{smooth_factor}p{pooling_kernel_size}.mp4", n_frames, float(self.tf.time_resolution), self.config.track_audio_location)
+        movieWriter.write_video_file()
+
+    def render_video_pitch(self):
+        self.config.movie_out_location.mkdir(exist_ok=True, parents=True)
+        embedded = self.embed_track()
+
+        l = 45
+        # determine real time start and end of the embedding in seconds
+        t_start = int(self.tf.dt*(l - 1))  # first time bin index (in S_mag) in the valid range
+        t_end = int(len(self.tf.T) - self.tf.frame_width - self.tf.dt - 1)  # last frame index in the valid range, assuming images start at t=0 and go to t=T-1
+        T_start = self.tf.T[t_start]
+        T_end = self.tf.T[t_end]
+        samples = np.floor((t_end - t_start + 1)/self.tf.dt)
+
+        print(f"t_start {t_start} (bins), t_end {t_end} (bins)")
+        print(f"T_start {T_start} (s), T_end {T_end} (s)")
+        print(f" seconds per Spectrogram time bin: {1/self.tf.time_resolution}")
+        # print(f"30fps T_start | seconds:frame | {np.floor(T_start)}:{np.round((T_start-np.floor(T_start))*30)}")
+        # print(f"30fps T_end | seconds:frame |  {np.floor(T_end)}:{np.round((T_end-np.floor(T_end))*30)}")
+        print(f"bins spanning input tensor: {(l-1)*self.tf.dt}")
+        print(f"time spanning input tensor: {(l-1)*self.tf.dt/self.tf.time_resolution} (s)")  # should equal T_start
+        print(f"Total frames to be rendered: {samples}")
+
+        n_tail_points = 50
+        print(f"T_start including tail points {T_start+(n_tail_points-1)/self.tf.time_resolution} (s), T_end {T_end} (s)")
+
+        line_color = "white" if self.config.dark_mode else "black"
+        a = 10.9
+        # a = 8
+        plt.rcParams['grid.color'] = (0.5, 0.5, 0.5, 0.1)
+        fig, ax = plt.subplots(figsize=(1.7778*a, a)) # e.g. figsize=(4, 3) --> img saved has resolution (400, 300) width by height when using dpi='figure' in savefig
+        if self.config.dark_mode == True:
+            fig.set_facecolor("black")
+            ax.set_facecolor("black")
+        n_max_frames = int(len(embedded))  # - n_tail_points
+        n_frames = self.config.n_frames
+        assert n_frames <= n_max_frames
+        
+        line_interval = 250
+        smooth_factor = self.config.embed_seq_smooth_window_size
+        pooling_kernel_size = self.config.pooling_kernel_size
+        # embedded = smooth_sequence(embedded, smooth_factor)
+        # eqVis = EqualizerVisHandler(embedded, smooth_sequence(self.tf.get_normalized_magnitudes(), 2), pooling_kernel_size=pooling_kernel_size)
+        # embedded_s = spine_interpolate([embedded[20:-40,0], embedded[20:-40, 1], embedded[20:-40, 2]])
+        min_pitch = embedded[:,0].min()
+        max_pitch = embedded[:,0].max()
+        def frame_fnc(given_t: float):
+            t = int(given_t * 4 + n_tail_points) 
+            ax.clear()
+            ax.grid(self.config.show_grid)
+     
+     
+
+            if t > line_interval:
+                sp = t - line_interval
+            else:
+                sp = 0
+            # n_points = t - sp
+            if t > 20 and t < len(embedded):
+                t_half = sp + int(np.round((t-sp) / 2))
+                ax.plot(list(range(sp,t_half)),embedded[sp:t_half,0], '-', markerfacecolor=line_color, markersize=1.9, linewidth=1.8, color=line_color, alpha=0.6, label='Z')
+                ax.plot(list(range(t_half-1,t)),embedded[t_half-1:t,0], '-', markerfacecolor=line_color, markersize=2, linewidth=2, color=line_color, alpha=0.7, label='Z')
+                ax.set_ylim(min_pitch, max_pitch)
+
+            # plt.draw()
+            # fig.show()
+            return mplfig_to_npimage(fig)
+        # frame_fnc(100)
+        # frame_fnc(101)
+        # plt.show()
+
+        movieWriter = MovieWriter(frame_fnc, self.config.movie_out_location, f"pitch_{self.config.track_features_location.name}_sm{smooth_factor}p{pooling_kernel_size}.mp4", n_frames, float(self.tf.time_resolution), self.config.track_audio_location, audio_offset_percent= 0.1)
         movieWriter.write_video_file()
