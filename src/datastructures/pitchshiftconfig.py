@@ -9,3 +9,4 @@ class PitchShiftConfig:
     max_pitch: float = 2.0
     step_size: float = 0.1
     percent_offsets: tuple = (0.1, 0.1)
+    overwrite : bool = False

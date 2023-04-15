@@ -6,7 +6,7 @@ from src.datastructures.pitchshiftconfig import PitchShiftConfig
 import numpy as np
 from scipy.io import wavfile
 
-from utils.sequenceindexinghandler import cut_offset_start_end
+from src.utils.sequenceindexinghandler import cut_offset_start_end
 class PitchShifter:
 
     def __init__(self, config: PitchShiftConfig) -> None:
@@ -25,12 +25,15 @@ class PitchShifter:
         outfolder.mkdir(exist_ok=True, parents=True)
         for i in np.arange(self.config.min_pitch, self.config.max_pitch, self.config.step_size):
             n_steps = round(i,1)
-            y_shifted_rubberband = self.shift_pitch(y, sr, n_steps=n_steps)
-            output_file = Path(wavefile.stem + f'_ps{n_steps:.2f}.wav')
-            # sf.write(str(outfolder /output_file), y_shifted_rubberband, samplerate=sr)
-            wavfile.write(str(outfolder /output_file), sr, y_shifted_rubberband.astype(y.dtype))
-            print("generated: " + str(output_file))
-            result.append(outfolder /output_file)
+            output_file =  outfolder /Path(wavefile.stem + f'_ps{n_steps:.2f}.wav')
+
+            if output_file.exists() and not self.config.overwrite:
+                print("skipped: " + str(output_file.name))
+            else:
+                y_shifted_rubberband = self.shift_pitch(y, sr, n_steps=n_steps)
+                wavfile.write(str(output_file), sr, y_shifted_rubberband.astype(y.dtype))
+                print("generated: " + str(output_file.name))
+            result.append(output_file)
 
         return result
 
