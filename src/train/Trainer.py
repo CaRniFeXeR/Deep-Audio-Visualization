@@ -62,10 +62,10 @@ class Trainer:
         self.visualizer = EmbeddingVisualizer(VisualizationConfig(self.config.modelconfig, self.config.modelstorageconfig, self.config.track_features_location, None, None, 1000), self.model)
 
 
-    def _log_loss(self, key: str, loss: torch.Tensor):
+    def _log_loss(self, key: str, loss: torch.Tensor, commit : bool = False):
 
         loss_np = loss.detach().cpu().numpy()
-        self.logger.log({key: loss_np}, commit=False)
+        self.logger.log({key: loss_np}, commit=commit)
 
     def train(self):
         self.logger.watch_model(self.model)

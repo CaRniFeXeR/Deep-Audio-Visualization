@@ -1,6 +1,9 @@
 import math
 from pathlib import Path
 from matplotlib import pyplot as plt
+from matplotlib.figure import Figure
+
+from ..datastructures.trackfeatures import TrackFeatures
 
 from ..utils.sequenceindexinghandler import cut_offset_start_end, extract_sequence
 from ..utils.interpolationhandler import spine_interpolate
@@ -42,12 +45,14 @@ class EmbeddingVisualizer:
             self.model = AudioModel(self.config.modelconfig)
             self.model = ModelFileHandler(self.config.modelstorageconfig).load_state_from_file(self.model, True)
 
-    def embed_track(self) -> np.ndarray:
+    def embed_track(self, tf : TrackFeatures = None) -> np.ndarray:
+        if tf == None:
+            tf = self.tf
         self.model.to(device="cuda")
-        S_mag_norm = self.tf.get_normalized_magnitudes()
+        S_mag_norm = tf.get_normalized_magnitudes()
         embedded_points = []
-        for w_start in range(S_mag_norm.shape[1] - self.tf.frame_width):
-            w_end = w_start + self.tf.frame_width
+        for w_start in range(S_mag_norm.shape[1] - tf.frame_width):
+            w_end = w_start + tf.frame_width
             input_tensor = torch.from_numpy(S_mag_norm[:, w_start:w_end]).to(device="cuda").unsqueeze(dim=0)
             encoded = self.model.embed_track_window(input_tensor)
             embedded_points.append(encoded.detach().cpu().numpy())
@@ -55,18 +60,37 @@ class EmbeddingVisualizer:
         embeded_track = np.concatenate(embedded_points)
         return embeded_track
     
-    def plot_track_pitch_over_time(self, percentage_length : 0.2, percentage_offset : 0.1, embedded : np.ndarray = None):
+    def plot_track_pitch_over_time(self, percentage_length : float = 0.2, percentage_offset : float = 0.1, embedded : np.ndarray = None, ax = None) -> Figure:
         if embedded is None:
             embedded = self.embed_track()
         pitch = embedded[:,0]
         # pitch = cut_offset_start_end(pitch, percentage_offset, percentage_offset)
         pitch = extract_sequence(pitch, 0, percentage_length)
-        fig = plt.figure(figsize=(40,5))
         time = np.arange(len(pitch))
 
-        plt.plot(time, pitch)
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(40,5))
+        else:
+            fig = plt.gcf()
+
+
+        ax.plot(time, pitch)
 
         return fig
+    
+    def plot_multi_pitch_prediction_over_time(self, percentage_length : float = 0.025):
+        assert self.config.multi_pitch_feature_location is not None
+
+        tf_dict = TrackFeaturesFileHandler().load_pitch_shifted_track_features(self.config.multi_pitch_feature_location)
+
+        fig, ax = plt.subplots(figsize=(40,5))
+
+        self.plot_track_pitch_over_time(percentage_length, 0.1, self.embed_track(tf_dict["-2.00"]), ax)
+        # self.plot_track_pitch_over_time(percentage_length, 0.1, self.embed_track(tf_dict["0.00"]), ax)
+        self.plot_track_pitch_over_time(percentage_length, 0.1, self.embed_track(tf_dict["1.00"]), ax)
+        return fig
+
+
 
 
 
@@ -222,7 +246,7 @@ class EmbeddingVisualizer:
         print(f"time spanning input tensor: {(l-1)*self.tf.dt/self.tf.time_resolution} (s)")  # should equal T_start
         print(f"Total frames to be rendered: {samples}")
 
-        n_tail_points = 50
+        n_tail_points = 10
         print(f"T_start including tail points {T_start+(n_tail_points-1)/self.tf.time_resolution} (s), T_end {T_end} (s)")
 
         line_color = "white" if self.config.dark_mode else "black"
@@ -237,16 +261,16 @@ class EmbeddingVisualizer:
         n_frames = self.config.n_frames
         assert n_frames <= n_max_frames
         
-        line_interval = 250
+        line_interval = 150
         smooth_factor = self.config.embed_seq_smooth_window_size
         pooling_kernel_size = self.config.pooling_kernel_size
-        # embedded = smooth_sequence(embedded, smooth_factor)
+        embedded = smooth_sequence(embedded, smooth_factor)
         # eqVis = EqualizerVisHandler(embedded, smooth_sequence(self.tf.get_normalized_magnitudes(), 2), pooling_kernel_size=pooling_kernel_size)
         # embedded_s = spine_interpolate([embedded[20:-40,0], embedded[20:-40, 1], embedded[20:-40, 2]])
         min_pitch = embedded[:,0].min()
         max_pitch = embedded[:,0].max()
         def frame_fnc(given_t: float):
-            t = int(given_t * 4 + n_tail_points) 
+            t = int(given_t + n_tail_points) 
             ax.clear()
             ax.grid(self.config.show_grid)
      

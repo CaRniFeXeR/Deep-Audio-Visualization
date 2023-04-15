@@ -15,6 +15,7 @@ class VisualizationConfig:
     dark_mode : bool = True
     plot_bins : bool = False
     show_grid : bool = False
+    multi_pitch_feature_location : Path = None
     feqbin_offset_intensity : int = 110
     feqbin_linewidth_intensity : int = 12
     pooling_kernel_size : int = 10

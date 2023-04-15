@@ -55,9 +55,9 @@ def absolute_pitch_diff_loss(y_embedded : torch.Tensor, y_pitches : torch.Tensor
     assert y_embedded.shape[1] == 2
 
     embedded_pitch_levels = y_embedded[:,:,0]
-    embedded_pitch_diffs = embedded_pitch_levels - embedded_pitch_levels.roll(shifts=1, dims=1)
+    embedded_pitch_diffs = torch.pow(embedded_pitch_levels - embedded_pitch_levels.roll(shifts=1, dims=1),2)
 
-    true_pitch_diffs = y_pitches - y_pitches.roll(shifts=1, dims=1)
+    true_pitch_diffs = torch.pow(y_pitches - y_pitches.roll(shifts=1, dims=1),2)
 
     loss = torch.mean(torch.pow(embedded_pitch_diffs[:,0] - true_pitch_diffs[:,0], 2))
 

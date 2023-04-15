@@ -22,10 +22,10 @@ class MovieWriter:
         if self.audio_file_path is not None:
             print(f"adding audio track  {self.audio_file_path} to the video")
             audio_clip = AudioFileClip(str(self.audio_file_path))
-            audio_offset = 12/self.fps
+            audio_offset_start = 12/self.fps
             if self.audio_offset_percent is not None:
-                audio_offset = np.floor(self.audio_offset_percent * video.end)
-            audio_clip = audio_clip.subclip(audio_offset, video.end) #amount of seconds until audio starts
+                audio_offset_start = np.floor(self.audio_offset_percent * audio_clip.duration)
+            audio_clip = audio_clip.subclip(audio_offset_start, video.end + audio_offset_start) #amount of seconds until audio starts
             video = video.set_audio(audio_clip)
 
         video.write_videofile(str(self.outdir / Path(self.video_name)), fps=self.fps)

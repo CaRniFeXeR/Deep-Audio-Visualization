@@ -16,10 +16,13 @@ class PtichEstimationTrainer(Trainer):
         super().__init__(config)
 
     def _init_visualizer(self):
-        self.visualizer = EmbeddingVisualizer(VisualizationConfig(self.config.modelconfig, self.config.modelstorageconfig, self.config.track_features_location / Path("Kodaline-Brother_ps0.00.wav_1.0s"), None, None, 1000), self.model)
+        vis_config = VisualizationConfig(self.config.modelconfig, self.config.modelstorageconfig, self.config.track_features_location / Path("Kodaline-Brother_ps0.00.wav_0.5s"), None, None, 1000)
+        vis_config.multi_pitch_feature_location = self.config.track_features_location
+        self.visualizer = EmbeddingVisualizer(vis_config, self.model)
 
     def _init_data(self):
         self.tf_dict = TrackFeaturesFileHandler().load_pitch_shifted_track_features(self.config.track_features_location)
+        assert len(self.tf_dict) > 0
         tf = self.tf_dict[list(self.tf_dict.keys())[0]]
         self.frame_height = tf.frame_height
         self.frame_width = tf.frame_width
@@ -41,8 +44,8 @@ class PtichEstimationTrainer(Trainer):
         self.logger.watch_model(self.model)
         self.model.to(device="cuda")
 
-        pitch_plot = self.visualizer.plot_track_pitch_over_time(0.2, 0.1)
-        self.logger.log_figure_as_img("pitch_init", pitch_plot)
+        pitch_plot = self.visualizer.plot_multi_pitch_prediction_over_time(0.05)
+        self.logger.log_figure_as_img("pitch_init", pitch_plot, commit=False)
 
         dataprovider = PitchDataProvider(self.tf_dict, self.config.trainparams.batch_size, 2)
 
@@ -61,24 +64,23 @@ class PtichEstimationTrainer(Trainer):
                 pitch_loss = self.pitch_loss_fn(embedded_pred_reshaped, y_pitch_levels)
                 self._log_loss("pitch_loss", pitch_loss)
                 loss = rec_loss + pitch_loss
-
-                overall_loss_np = loss.detach().cpu().numpy()
-                epoch_loss += overall_loss_np
-                self.logger.log({"overall_loss": overall_loss_np}, commit=False)
+                self.logger.log({"overall_loss": loss}, commit=False)
+                epoch_loss += loss.detach().cpu().numpy()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 self.optimizer.step()
                 # print(f" rec_loss {rec_loss_np}")
 
             # print(f"rec_pred mean {rec_pred.detach().cpu().numpy().mean()}")
-          
-            pitch_plot = self.visualizer.plot_track_pitch_over_time(0.1, 0.1)
-            self.logger.log_figure_as_img("pitch", pitch_plot)
-            plt.close("all")
+            self.logger.log({"epoch":e, "epoch_loss": epoch_loss}, commit=True)
+            
 
             if e % 4 == 0:
+                pitch_plot = self.visualizer.plot_multi_pitch_prediction_over_time(0.05)
+                self.logger.log_figure_as_img("pitch", pitch_plot, commit=False)
+                plt.close("all")
                 trajectory_plot = self.visualizer.plot_whole_track_trajectory()
-                self.logger.log_figure_as_img("trajectory", trajectory_plot)
+                self.logger.log_figure_as_img("trajectory", trajectory_plot, commit=False)
 
             if e > self.config.trainparams.n_epochs / 4:                
                 if epoch_loss < best_epoch_loss:

@@ -28,6 +28,9 @@ class FeatureExtractor:
     def generate_pitchshifted_features(self, wavefile_path : Path):
         assert self.config.pitchshifting is not None
 
+        self.config.outputlocation /= Path(wavefile_path.stem + f"_{self.config.secs_per_spectrum}")
+        self.config.outputlocation.mkdir(exist_ok=True, parents=True)
+
         pitchsshifter = PitchShifter(self.config.pitchshifting)
         pitch_shifted_files = pitchsshifter.range_pitch(wavefile_path)
         for pitch_shifted_file in pitch_shifted_files:
