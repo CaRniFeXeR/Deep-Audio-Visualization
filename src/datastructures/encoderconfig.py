@@ -9,3 +9,4 @@ class EncoderConfig:
     frame_width_in : int = 22
     latent_dim : int = 3
     final_activation_fn : torch.nn.Module = torch.nn.LeakyReLU()
+    use_variational_encoder : bool = False

@@ -12,4 +12,6 @@ class Trainparams:
     rec_loss : str = "bce"
     seq_loss : str = "mse"
     seq_loss_weight : float = 0.01
-    dist_loss_weight : float = 0.001
+    kl_loss_weight : float = 0.001
+    dist_loss_weight : float = 0.0001
+    use_sprectral_loss : bool = False

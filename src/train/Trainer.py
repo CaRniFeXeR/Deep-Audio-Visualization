@@ -2,6 +2,7 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 import torch
 
+
 from .Loss import half_window_distance_loss, seq_distance_loss, spectral_centroid_loss
 
 from .dataprovider import DataProvider
@@ -12,7 +13,7 @@ from ..io.trackfeaturesfilehandler import TrackFeaturesFileHandler
 from .WandbLogger import WandbLogger
 from ..datastructures.trainconfig import TrainConfig
 from ..model.audiomodel import AudioModel
-
+from ..model.varational_encoder import VarationalEncoder
 
 class Trainer:
 
@@ -88,9 +89,15 @@ class Trainer:
 
                 loss = rec_loss
 
-                centroid_loss = spectral_centroid_loss(centroid_tensor, embedded_pred) * 0.05
-                loss += centroid_loss
-                self._log_loss("centroid_loss", centroid_loss)
+                if self.config.trainparams.use_sprectral_loss:
+                    centroid_loss = spectral_centroid_loss(centroid_tensor, embedded_pred) * 0.05
+                    loss += centroid_loss
+                    self._log_loss("centroid_loss", centroid_loss)
+
+                if isinstance(self.model.encoder, VarationalEncoder):
+                    kl_loss = self.model.encoder.kl_loss * self.config.trainparams.kl_loss_weight
+                    loss += kl_loss
+                    self._log_loss("kl_loss", kl_loss)
 
                 if self.config.modelconfig.enable_prediction_head and e >= self.config.trainparams.seq_prediction_start_epoch:
                     input_seq = dataprovider.get_next_prediction_seq()
@@ -115,13 +122,14 @@ class Trainer:
                 epoch_loss += overall_loss_np
                 self.logger.log({"overall_loss": overall_loss_np}, commit=False)
                 loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 self.optimizer.step()
                 # print(f" rec_loss {rec_loss_np}")
-
-            # print(f"rec_pred mean {rec_pred.detach().cpu().numpy().mean()}")
-            trajectory_plot = self.visualizer.plot_whole_track_trajectory()
-            self.logger.log_figure_as_img("trajectory", trajectory_plot)
-            plt.close("all")
+            self.logger.log({"epoch":e, "epoch_loss": epoch_loss}, commit=True)
+            if e % 5 == 0:
+                trajectory_plot = self.visualizer.plot_whole_track_trajectory()
+                self.logger.log_figure_as_img("trajectory", trajectory_plot, commit=False)
+                plt.close("all")
 
             if e > self.config.trainparams.n_epochs / 4 and epoch_loss < best_epoch_loss:
                 print(f"new best loss reached saving model.. epoch_loss {epoch_loss:.4f} best_epoch_loss {best_epoch_loss:.4f}")

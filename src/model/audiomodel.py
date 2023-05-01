@@ -1,9 +1,9 @@
 from typing import Tuple
 import torch
-from src.model.decoder import Decoder
-
-from src.model.encoder import Encoder
-from src.model.sequence_predictor import SequencePredictor
+from .varational_encoder import VarationalEncoder
+from .decoder import Decoder
+from .encoder import Encoder
+from .sequence_predictor import SequencePredictor
 
 from ..datastructures.audiomodelconfig import AudioModelConfig
 
@@ -16,7 +16,7 @@ class AudioModel(torch.nn.Module):
         self.config.decoderconfig.latent_dim = self.config.encoderconfig.latent_dim
         self.config.seqpredictorconfig.latent_dim = self.config.encoderconfig.latent_dim
         
-        self.encoder = Encoder(self.config.encoderconfig)
+        self.encoder = VarationalEncoder(self.config.encoderconfig) if self.config.encoderconfig.use_variational_encoder else Encoder(self.config.encoderconfig)
         self.decoder = Decoder(self.config.decoderconfig)
         if self.config.enable_prediction_head:
             self.sequence_predictor = SequencePredictor(self.config.seqpredictorconfig)

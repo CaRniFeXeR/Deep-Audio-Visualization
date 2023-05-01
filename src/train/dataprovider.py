@@ -50,12 +50,13 @@ class DataProvider:
             if input_tensor is not None:
                 batch_tensors_input.append(input_tensor)
 
-            centroid_tensor = self._get_avg_centroid(w_start)
-            if centroid_tensor is not None:
-                batch_tensors_centroid.append(centroid_tensor)
+            if self.tf.centroids is not None:
+                centroid_tensor = self._get_avg_centroid(w_start)
+                if centroid_tensor is not None:
+                    batch_tensors_centroid.append(centroid_tensor)
 
         batch_tensor_input = torch.stack(batch_tensors_input)
-        batch_tensor_centroid = torch.stack(batch_tensors_centroid)
+        batch_tensor_centroid = None if self.tf.centroids is None else torch.stack(batch_tensors_centroid)
         return batch_tensor_input, batch_tensor_centroid
 
     def get_next_prediction_seq(self) -> torch.Tensor:
